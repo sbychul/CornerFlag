@@ -75,6 +75,7 @@ Status: needs-triage
 카드를 클릭하면 기본 브라우저로 구글 검색을 연다 (Q23).
 
 - 검색어: `{대회명} {홈팀} vs {원정팀} {YYYY-MM-DD}`. 날짜는 킥오프의 UTC 날짜다 (Q28).
+- 팀명은 ESPN `displayName`이다. 카드에 표시하는 `shortDisplayName`은 검색어에 쓰지 않는다 (Q49).
 - 예: `Premier League Manchester City vs Arsenal 2026-10-18`.
 
 ## 6. 데이터 소스 (ESPN 비공식 API)

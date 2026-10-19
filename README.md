@@ -45,7 +45,7 @@ The card shows, in this order: a live match → the next match if it starts with
 
 ## Data
 
-Match data comes from ESPN's public but **unofficial** site API. It can change or break without notice. CornerFlag is not affiliated with ESPN, the leagues or the clubs; club names and logos belong to their owners.
+Match data comes from ESPN's public but **unofficial** site API. It can change or break without notice. CornerFlag is meant for **personal, non-commercial use** and keeps its requests light: one check an hour, every 10 seconds only while your club is playing. See [Disclaimer](#disclaimer).
 
 ## Build from source
 
@@ -60,6 +60,15 @@ npm run tauri build   # NSIS installer in src-tauri/target/release/bundle/nsis
 
 Releases are built by GitHub Actions when a `v*` tag is pushed (`.github/workflows/release.yml`). The tag must match `version` in `src-tauri/tauri.conf.json`.
 
+## Disclaimer
+
+CornerFlag is an independent, free, open-source hobby project. It is not affiliated with, endorsed by or sponsored by ESPN, The Walt Disney Company, any league, competition or club.
+
+- ESPN, club and competition names, logos and other trademarks belong to their respective owners. They are shown only to identify the teams and matches. Logos are loaded from ESPN at runtime and are not distributed with the app.
+- Match data is provided by a third party that CornerFlag does not control. It is shown as is, may be delayed, wrong or unavailable, and must not be relied on for betting or any other decision.
+- You are responsible for making sure your use complies with the terms of the data provider. Use it for personal, non-commercial purposes only.
+- If you are a rights holder and want something changed or removed, please [open an issue](https://github.com/sbychul/CornerFlag/issues). The project will comply promptly, up to and including stopping the use of the data source.
+
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). The license covers the CornerFlag code only, not any third-party data, names or logos the app displays.

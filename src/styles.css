@@ -132,7 +132,7 @@ svg {
 }
 
 .loading .refresh svg {
-  animation: spin 0.9s linear infinite;
+  animation: spin 900ms linear var(--spin-delay, 0ms) infinite;
 }
 
 .match {

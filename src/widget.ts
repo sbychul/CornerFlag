@@ -19,7 +19,8 @@ let period = 0; // current refresh interval, for resume
 let lastTick = 0;
 let cooldownUntil = 0;
 let blockedUntil = 0;
-let loading = false; // manual refresh in flight: spin the ↻
+const SPIN = 900; // ms per ↻ turn, matches styles.css
+let spinStart = 0; // the ↻ spins (class "loading") from a manual refresh until the turn after the data is back
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -73,8 +74,8 @@ async function tick() {
     render();
   }
   busy = false;
-  loading = false;
-  card.classList.remove("loading");
+  // Finish the current turn instead of snapping back.
+  if (card.classList.contains("loading")) setTimeout(() => !busy && card.classList.remove("loading"), SPIN - ((performance.now() - spinStart) % SPIN));
   timer = setTimeout(tick, team === s.teamId ? period : 0);
 }
 
@@ -83,7 +84,7 @@ function refresh() {
   if (busy || now < Math.max(cooldownUntil, blockedUntil)) return;
   cooldownUntil = now + 5000;
   write("cf.cooldown", cooldownUntil);
-  loading = true;
+  if (!card.classList.contains("loading")) spinStart = performance.now();
   card.classList.add("loading");
   tick();
 }
@@ -137,18 +138,21 @@ function warning() {
 
 function render(goal?: "home" | "away") {
   const m = shown;
+  // A re-render replaces the ↻ svg; start the new one at the same angle.
+  const spin = card.classList.contains("loading") ? " loading" : "";
+  card.style.setProperty("--spin-delay", `${-((performance.now() - spinStart) % SPIN)}ms`);
   card.style.setProperty("--op", String(s.opacity / 100));
   const head = (league: string) =>
     `<div class="head"><span class="league">${esc(league)}</span>${warning()}<button class="refresh" title="Refresh">${ICON.refresh}</button></div>`;
   if (!m) {
-    card.className = `card surface empty${loading ? " loading" : ""}`;
+    card.className = `card surface empty${spin}`;
     card.style.removeProperty("--tint");
     card.innerHTML = head("") + `<div class="none">No upcoming matches</div>`;
     return;
   }
   const w = lead(m);
   const tint = w && m[w].color;
-  card.className = `card surface ${m.state}${loading ? " loading" : ""}`;
+  card.className = `card surface ${m.state}${spin}`;
   card.style.setProperty("--tint", tint ? `linear-gradient(to ${w === "home" ? "right" : "left"}, ${tint}66, ${tint}00)` : "none");
   const more = `<span class="more">More details ${ICON.arrow}</span>`;
   const flash = goal && m[goal].color;

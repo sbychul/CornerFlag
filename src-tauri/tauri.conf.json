@@ -1,0 +1,64 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "CornerFlag",
+  "version": "0.1.0",
+  "identifier": "io.github.sbychul.cornerflag",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "CornerFlag",
+        "x": 1100,
+        "width": 240,
+        "height": 120,
+        "y": 80,
+        "decorations": false,
+        "transparent": true,
+        "shadow": false,
+        "resizable": false,
+        "skipTaskbar": true,
+        "alwaysOnBottom": true
+      },
+      {
+        "label": "dwmsbt",
+        "title": "CornerFlag DWMSBT",
+        "x": 820,
+        "width": 240,
+        "height": 120,
+        "y": 80,
+        "decorations": false,
+        "transparent": true,
+        "shadow": false,
+        "resizable": false,
+        "skipTaskbar": true,
+        "alwaysOnBottom": true,
+        "windowEffects": {
+          "effects": [
+            "acrylic"
+          ]
+        }
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

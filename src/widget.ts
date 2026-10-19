@@ -19,8 +19,8 @@ let period = 0; // current refresh interval, for resume
 let lastTick = 0;
 let cooldownUntil = 0;
 let blockedUntil = 0;
-const SPIN = 900; // ms per ↻ turn, matches styles.css
-let spinStart = 0; // the ↻ spins (class "loading") from a manual refresh until the turn after the data is back
+// One ↻ for the card's lifetime: re-rendering would replace the element and cut its spin short.
+const refreshButton = Object.assign(document.createElement("button"), { className: "refresh", title: "Refresh", innerHTML: ICON.refresh });
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -74,8 +74,6 @@ async function tick() {
     render();
   }
   busy = false;
-  // Finish the current turn instead of snapping back.
-  if (card.classList.contains("loading")) setTimeout(() => !busy && card.classList.remove("loading"), SPIN - ((performance.now() - spinStart) % SPIN));
   timer = setTimeout(tick, team === s.teamId ? period : 0);
 }
 
@@ -84,8 +82,11 @@ function refresh() {
   if (busy || now < Math.max(cooldownUntil, blockedUntil)) return;
   cooldownUntil = now + 5000;
   write("cf.cooldown", cooldownUntil);
-  if (!card.classList.contains("loading")) spinStart = performance.now();
-  card.classList.add("loading");
+  // Fixed 2 s spin, whatever the network takes. A script animation survives the re-render's detach/re-attach.
+  refreshButton.classList.add("spinning");
+  refreshButton.firstElementChild!
+    .animate([{ transform: "rotate(0)" }, { transform: "rotate(720deg)" }], { duration: 2000, easing: "cubic-bezier(.4, 0, .2, 1)" })
+    .finished.then(() => refreshButton.classList.remove("spinning"));
   tick();
 }
 
@@ -138,31 +139,32 @@ function warning() {
 
 function render(goal?: "home" | "away") {
   const m = shown;
-  // A re-render replaces the ↻ svg; start the new one at the same angle.
-  const spin = card.classList.contains("loading") ? " loading" : "";
-  card.style.setProperty("--spin-delay", `${-((performance.now() - spinStart) % SPIN)}ms`);
   card.style.setProperty("--op", String(s.opacity / 100));
   const head = (league: string) =>
-    `<div class="head"><span class="league">${esc(league)}</span>${warning()}<button class="refresh" title="Refresh">${ICON.refresh}</button></div>`;
+    `<div class="head"><span class="league">${esc(league)}</span>${warning()}<i class="slot"></i></div>`;
+  const paint = (html: string) => {
+    card.innerHTML = html;
+    card.querySelector(".slot")!.replaceWith(refreshButton);
+  };
   if (!m) {
-    card.className = `card surface empty${spin}`;
+    card.className = "card surface empty";
     card.style.removeProperty("--tint");
-    card.innerHTML = head("") + `<div class="none">No upcoming matches</div>`;
-    return;
+    return paint(head("") + `<div class="none">No upcoming matches</div>`);
   }
   const w = lead(m);
   const tint = w && m[w].color;
-  card.className = `card surface ${m.state}${spin}`;
+  card.className = `card surface ${m.state}`;
   card.style.setProperty("--tint", tint ? `linear-gradient(to ${w === "home" ? "right" : "left"}, ${tint}66, ${tint}00)` : "none");
   const more = `<span class="more">More details ${ICON.arrow}</span>`;
   const flash = goal && m[goal].color;
-  card.innerHTML =
+  paint(
     (flash ? `<i class="flash" style="background:linear-gradient(to ${goal === "home" ? "right" : "left"}, ${flash}80, ${flash}00)"></i>` : "") +
     head(m.league) +
     `<div class="match">${team(m.home)}<div class="center">${center(m, goal)}</div>${team(m.away)}</div>` +
     (m.state === "in"
       ? `<div class="foot"><hr><div class="events"><span class="goal${goal ? " slide" : ""}">${esc(m.goal ?? "")}</span>${more}</div></div>`
-      : more);
+      : more),
+  );
 }
 
 async function layout() {

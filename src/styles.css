@@ -126,13 +126,9 @@ svg {
   opacity: 1;
 }
 
-/* Manual refresh in flight: keep ↻ visible and spin it until the data is back. */
-.loading .refresh {
+/* Keep ↻ visible while it spins (widget.ts animates it). */
+.refresh.spinning {
   opacity: 1;
-}
-
-.loading .refresh svg {
-  animation: spin 900ms linear var(--spin-delay, 0ms) infinite;
 }
 
 .match {
@@ -320,12 +316,6 @@ svg {
 
 .slide {
   animation: slide 400ms 350ms ease-out both;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 @keyframes dot {

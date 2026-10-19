@@ -675,9 +675,12 @@ input[type="range"]::-webkit-slider-thumb {
   gap: 2px;
 }
 
-.app b {
-  font-size: 22px;
-  font-weight: 600;
+/* Wordmark (currentColor), sized so its caps match the 22px name it replaces. */
+.app svg {
+  align-self: flex-start;
+  height: 30px;
+  width: auto;
+  margin: 2px 0 4px;
 }
 
 .app span {

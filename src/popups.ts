@@ -5,6 +5,7 @@ import { emit } from "@tauri-apps/api/event";
 import { LogicalSize, getCurrentWindow } from "@tauri-apps/api/window";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import wordmark from "../src-tauri/icons/logo-wordmark.svg?raw";
 import { ICON, esc, fmtDate, fmtTime, load, read } from "./common.ts";
 
 const win = getCurrentWindow();
@@ -46,7 +47,7 @@ export async function menu() {
 export async function about() {
   document.body.innerHTML = `<div class="window surface about">
     <div class="title" data-tauri-drag-region><span data-tauri-drag-region>About</span><button class="close" title="Close">${ICON.close}</button></div>
-    <div class="app"><b>CornerFlag</b><span>Version ${esc(await getVersion())}</span></div>
+    <div class="app">${wordmark}<span>Version ${esc(await getVersion())}</span></div>
     <hr>
     <dl><dt>Your team</dt><dd class="v-team"></dd><dt>Last updated</dt><dd class="v-last"></dd>
       <dt>Data</dt><dd>ESPN (unofficial API)</dd><dt>License</dt><dd>MIT</dd></dl>

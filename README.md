@@ -1,4 +1,14 @@
-# CornerFlag
+<h1>
+  <picture>
+    <!-- logo-wordmark.svg is currentColor, which an <img> draws black; GitHub dark theme gets a white copy -->
+    <source media="(prefers-color-scheme: dark)" srcset=".github/wordmark-white.svg">
+    <img src="src-tauri/icons/logo-wordmark.svg" alt="CornerFlag" height="48">
+  </picture>
+</h1>
+
+A little Flag for your Corner of the pitch.
+
+---
 
 A minimal football widget for the Windows desktop. Pick one club and it shows the club's live match, next match or latest result on a single card that stays on your desktop.
 
@@ -22,12 +32,12 @@ The app is not code-signed, so SmartScreen may warn on first run. Click **More i
 
 ## Use
 
-| Action | Result |
-|---|---|
-| Click the card | Google search for the match |
-| Drag the card | Move the widget (unless **Lock position** is on) |
-| Hover the card | Shows ↻ (refresh) and *More details* |
-| Right-click the card or the tray icon | Menu: Settings, Refresh now, About, Quit |
+| Action                                | Result                                           |
+| ------------------------------------- | ------------------------------------------------ |
+| Click the card                        | Google search for the match                      |
+| Drag the card                         | Move the widget (unless **Lock position** is on) |
+| Hover the card                        | Shows ↻ (refresh) and _More details_             |
+| Right-click the card or the tray icon | Menu: Settings, Refresh now, About, Quit         |
 
 **Settings** (applied immediately): your team, start with Windows, size, opacity, lock position, 12/24-hour time.
 

@@ -20,7 +20,7 @@
 | Settings 창 | 메뉴의 `Settings` |
 | About 창 | 메뉴의 `About` |
 
-UI 문구는 모두 영어다 (Q16). 앱 로고와 아이콘은 아직 없다. 디자인에 임의로 넣지 않는다.
+UI 문구는 모두 영어다 (Q16). 앱 로고는 `src-tauri/icons/logo.svg`(표시만), `logo-wordmark.svg`(표시 + 글자)다. 다른 표시를 임의로 만들지 않는다.
 
 ## 2. 위젯 카드
 
@@ -247,18 +247,17 @@ Settings 창과 같은 창에서 팀 영역만 보여준다 (Q8, Q12, Q44). Figm
 
 ## 8. About 창 (Q69)
 
-폭 360px. 앱 이름은 로고 없이 글자로만 쓴다.
+폭 360px. 앱 이름 자리에 글자 포함 로고(`src-tauri/icons/logo-wordmark.svg`, 높이 30px, 글자색)를 쓴다.
 
 | 영역 | 내용 |
 |---|---|
-| 앱 | `CornerFlag`(22px, 굵기 600), 그 아래 `Version 1.0.0`(12px, 흰색 55%) |
+| 앱 | 글자 포함 로고, 그 아래 `Version 1.0.0`(12px, 흰색 55%) |
 | 업데이트 상태 | 흰색 6% 바탕 상자. 최신이면 초록 점(`#34c759`) + `Up to date`. 새 버전이 있으면 `Update available` + 설치 동작(설치본은 설치 후 재시작, zip은 Releases 페이지) (Q4) |
 | 정보 | 왼쪽 이름(흰색 55%), 오른쪽 값(흰색 90%), 12px: `Your team`, `Last updated`(마지막 성공 갱신 시각), `Data`(`ESPN (unofficial API)`), `License`(`MIT`) |
 | 링크 | `View on GitHub ↗` |
 
 ## 9. 정해야 할 것
 
-- 앱 아이콘과 트레이 아이콘 (로고가 정해진 뒤)
 - 트레이 아이콘 왼쪽 클릭 동작
 - ⚠와 위젯 위 업데이트 표시의 모양
 - 첫 실행 화면의 Figma 디자인

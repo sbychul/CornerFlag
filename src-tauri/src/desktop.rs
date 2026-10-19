@@ -1,9 +1,8 @@
-//! Keep the widget on the desktop layer: visible through "Show desktop" (Win+D),
-//! with an acrylic backdrop that keeps rendering while the window is inactive.
+//! Keep the widget on the desktop layer (visible through "Show desktop", Win+D), single instance, start with Windows.
 
-use std::ffi::c_void;
-use windows_sys::Win32::Foundation::HWND;
-use windows_sys::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryW};
+use windows_sys::Win32::Foundation::{ERROR_ALREADY_EXISTS, GetLastError, HWND};
+use windows_sys::Win32::System::Registry::{HKEY_CURRENT_USER, REG_SZ, RegDeleteKeyValueW, RegSetKeyValueW};
+use windows_sys::Win32::System::Threading::CreateMutexW;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     FindWindowW, GWLP_HWNDPARENT, HWND_BOTTOM, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SetWindowLongPtrW,
     SetWindowPos,
@@ -22,45 +21,23 @@ pub fn pin(hwnd: HWND) {
     }
 }
 
-#[repr(C)]
-struct AccentPolicy {
-    state: u32,
-    flags: u32,
-    gradient_abgr: u32,
-    animation_id: u32,
+/// False when another CornerFlag is already running. The mutex lives until the process exits.
+pub fn first_instance() -> bool {
+    unsafe { CreateMutexW(std::ptr::null(), 0, wide("io.github.sbychul.cornerflag").as_ptr()) };
+    unsafe { GetLastError() != ERROR_ALREADY_EXISTS }
 }
 
-#[repr(C)]
-struct WindowCompositionAttribData {
-    attrib: u32,
-    data: *mut c_void,
-    size: usize,
-}
-
-const WCA_ACCENT_POLICY: u32 = 19;
-const ACCENT_ENABLE_ACRYLICBLURBEHIND: u32 = 4;
-
-/// Acrylic via the undocumented SetWindowCompositionAttribute. The documented DWM system backdrop
-/// (DWMWA_SYSTEMBACKDROP_TYPE) showed a solid fill for an inactive window, which a desktop widget always is.
-pub fn acrylic(hwnd: HWND, gradient_abgr: u32) -> bool {
+/// Start with Windows via the per-user Run key.
+pub fn autostart(on: bool) {
+    let key = wide(r"Software\Microsoft\Windows\CurrentVersion\Run");
+    let name = wide("CornerFlag");
     unsafe {
-        let user32 = LoadLibraryW(wide("user32.dll").as_ptr());
-        let Some(proc) = GetProcAddress(user32, c"SetWindowCompositionAttribute".as_ptr().cast()) else {
-            return false;
-        };
-        let swca: unsafe extern "system" fn(HWND, *mut WindowCompositionAttribData) -> i32 =
-            std::mem::transmute(proc);
-        let mut policy = AccentPolicy {
-            state: ACCENT_ENABLE_ACRYLICBLURBEHIND,
-            flags: 2,
-            gradient_abgr,
-            animation_id: 0,
-        };
-        let mut data = WindowCompositionAttribData {
-            attrib: WCA_ACCENT_POLICY,
-            data: (&raw mut policy).cast(),
-            size: size_of::<AccentPolicy>(),
-        };
-        swca(hwnd, &mut data) != 0
+        if on {
+            let exe = std::env::current_exe().unwrap_or_default();
+            let value = wide(&format!("\"{}\"", exe.display()));
+            RegSetKeyValueW(HKEY_CURRENT_USER, key.as_ptr(), name.as_ptr(), REG_SZ, value.as_ptr().cast(), (value.len() * 2) as u32);
+        } else {
+            RegDeleteKeyValueW(HKEY_CURRENT_USER, key.as_ptr(), name.as_ptr());
+        }
     }
 }

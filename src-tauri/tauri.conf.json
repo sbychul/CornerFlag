@@ -15,35 +15,53 @@
       {
         "label": "main",
         "title": "CornerFlag",
-        "x": 1100,
-        "width": 240,
-        "height": 120,
-        "y": 80,
-        "decorations": false,
-        "transparent": true,
-        "shadow": false,
-        "resizable": false,
-        "skipTaskbar": true,
-        "alwaysOnBottom": true
-      },
-      {
-        "label": "dwmsbt",
-        "title": "CornerFlag DWMSBT",
-        "x": 820,
-        "width": 240,
-        "height": 120,
-        "y": 80,
-        "decorations": false,
-        "transparent": true,
-        "shadow": false,
-        "resizable": false,
+        "width": 320,
+        "height": 146,
         "skipTaskbar": true,
         "alwaysOnBottom": true,
-        "windowEffects": {
-          "effects": [
-            "acrylic"
-          ]
-        }
+        "focus": false,
+        "decorations": false,
+        "transparent": true,
+        "shadow": false,
+        "resizable": false,
+        "visible": false
+      },
+      {
+        "label": "menu",
+        "title": "CornerFlag menu",
+        "width": 196,
+        "height": 153,
+        "skipTaskbar": true,
+        "alwaysOnTop": true,
+        "decorations": false,
+        "transparent": true,
+        "shadow": false,
+        "resizable": false,
+        "visible": false
+      },
+      {
+        "label": "settings",
+        "title": "CornerFlag Settings",
+        "width": 560,
+        "height": 734,
+        "center": true,
+        "decorations": false,
+        "transparent": true,
+        "shadow": false,
+        "resizable": false,
+        "visible": false
+      },
+      {
+        "label": "about",
+        "title": "About CornerFlag",
+        "width": 360,
+        "height": 296,
+        "center": true,
+        "decorations": false,
+        "transparent": true,
+        "shadow": false,
+        "resizable": false,
+        "visible": false
       }
     ],
     "security": {

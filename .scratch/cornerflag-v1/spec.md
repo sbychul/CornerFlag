@@ -52,7 +52,7 @@ Status: needs-triage
 - **메뉴** (Q7, Q66, Q68): 위젯 우클릭과 트레이 아이콘 우클릭에 같은 드롭다운 메뉴를 띄운다. 항목과 모양은 [design.md](design.md) 3.1절.
   - Windows 기본 트레이 메뉴는 모양을 바꿀 수 없으므로, 메뉴는 별도의 프레임리스 팝업 창(투명, 작업 표시줄에 안 보임, 항상 위)으로 만든다. 포커스를 잃으면 닫는다.
   - 메뉴 창을 활성화해도 위젯 창은 활성화하지 않는다. 위젯이 다른 창 위로 올라오지 않게 하려는 것이다(10절).
-- **배경 아크릴릭** (Q26): 비공개 API `SetWindowCompositionAttribute`(`ACCENT_ENABLE_ACRYLICBLURBEHIND`)로 구현한다. Tauri 내장 `windowEffects: ["acrylic"]`(DWM system backdrop)은 비활성 창에서 단색으로만 나와서 쓰지 않는다 ([verification.md](verification.md) 6절). SWCA 호출이 실패하면 CSS 반투명 배경으로 대체한다 (Q29).
+- **배경** (Q26, Q29): 블러 없이 CSS 반투명 배경만 쓴다. 투명 창이라 잘린 모서리로 바탕화면이 그대로 보인다. 처음엔 비공개 API `SetWindowCompositionAttribute`(`ACCENT_ENABLE_ACRYLICBLURBEHIND`) 아크릴릭으로 구현했으나(2026-10-19) 다음 문제로 뺐다: 아크릴릭이 창 사각형 전체에 칠해져 잘린 모서리가 투명하지 않음, 뒤가 거의 비치지 않아 투명도 설정이 티가 안 남, 모서리를 자르려고 넣은 window region(`SetWindowRgn`) 때문에 활성화·드래그 때 Windows 기본 캡션이 그려짐(tao가 프레임리스 창에도 `WS_CAPTION`을 남김). Tauri 내장 `windowEffects: ["acrylic"]`은 비활성 창에서 단색이라 처음부터 제외 ([verification.md](verification.md) 6절).
 - 앱은 하나만 실행된다 (single-instance).
 
 ## 5. 표시 규칙
@@ -86,7 +86,7 @@ Status: needs-triage
 
 | 용도 | 경로 | 비고 |
 |---|---|---|
-| 리그별 팀 목록 (첫 실행, 설정) | `/{slug}/teams` | slug: `eng.1`, `esp.1`, `ger.1`, `ita.1`, `fra.1` |
+| 리그별 팀 목록 (첫 실행, 설정) | `https://site.api.espn.com/apis/v2/sports/soccer/{slug}/standings` | slug: `eng.1`, `esp.1`, `ger.1`, `ita.1`, `fra.1`. `/{slug}/teams`는 CORS 헤더가 없어 WebView에서 못 부른다(2026-10-19 확인). standings에는 `color`와 dark 로고가 없어서, 로고는 `500-dark/{id}.png` 주소 규칙(없으면 `500/`)을, 선택한 팀의 색은 그 팀 일정 응답의 `team.color`를 쓴다 |
 | 직전 결과 | `/all/teams/{teamId}/schedule` | 모든 대회의 종료된 경기 |
 | 다음 경기, 진행 중인 경기 | `/all/teams/{teamId}/schedule?fixture=true` | 예정 + 진행 중 경기 |
 | 실시간 갱신 | `/all/scoreboard/{eventId}` | 경기 1개, 압축 약 2.3KB. `details[]`에 득점 정보 |
@@ -95,7 +95,7 @@ Status: needs-triage
 - 응답의 경기 순서는 날짜순이 아니므로 직접 정렬한다.
 - 친선경기는 `event.league.slug`로 걸러낸다: `club.friendly`, `friendly.*`, `esp.joan_gamper`. 처음 보는 프리시즌 트로피 slug는 걸러지지 않을 수 있어 프리시즌마다 점검한다.
 - 경기 상태는 `status.type.state`(`pre` / `in` / `post`)로 판단한다. `status.type.name`은 진행 중에 `STATUS_SECOND_HALF`와 `STATUS_IN_PROGRESS` 사이를 오가므로 상태 판단에 쓰지 않는다.
-- 응답에 `Access-Control-Allow-Origin: *`가 붙어 있어 WebView에서 `fetch`로 바로 호출할 수 있다.
+- 일정·scoreboard·standings 응답에는 `Access-Control-Allow-Origin: *`가 붙어 있어 WebView에서 `fetch`로 바로 호출할 수 있다. `/{slug}/teams`, `/{slug}/teams/{id}`에는 없다.
 
 ## 7. 갱신 정책
 
@@ -140,17 +140,15 @@ HTTP 상태 코드만으로는 분류할 수 없다. 존재하지 않는 팀 ID�
 
 설정 항목은 [design.md](design.md) 6절. 응원 팀은 리그 slug와 팀 ID로 저장한다.
 
-저장 위치는 Tauri 앱 데이터 디렉터리(`%APPDATA%\io.github.sbychul.cornerflag\`)다. 설정, 창 위치, 마지막 응답 캐시를 JSON으로 저장한다. (설계 초기에 `%APPDATA%\CornerFlag\`로 적었던 것을 Tauri 기본 경로로 바꿈)
+설정, 창 위치, 마지막 경기 캐시는 WebView의 `localStorage`에 JSON으로 저장한다(실제 파일은 `%LOCALAPPDATA%\io.github.sbychul.cornerflag\EBWebView\`). 모든 창이 같은 WebView2 프로필을 써서 별도 파일 I/O나 Rust 명령 없이 공유된다. (설계 초기에 `%APPDATA%` JSON 파일로 적었던 것을 구현 때 바꿈)
 
 ## 10. 미결·후속 검증
 
 - explorer.exe가 재시작되면 Progman이 새로 만들어진다. `TaskbarCreated` 메시지를 받아 소유자를 다시 지정해야 할 것으로 보이며, 검증이 필요하다.
 - 프로그램에서 위젯을 강제로 활성화하면(`SetForegroundWindow`) 다른 창 위로 올라온다. 사용자 클릭으로는 생기지 않았다. 위젯에 활성화를 일으키는 동작을 넣게 되면 `WS_EX_NOACTIVATE`를 적용한다. 우클릭 메뉴 팝업을 띄우고 닫을 때 위젯 z-순서가 바뀌지 않는지 검증이 필요하다.
-- SWCA 아크릴릭 상태에서 창을 드래그할 때의 성능 (이 API는 드래그 시 끊긴다는 보고가 있음).
 - 멀티 모니터, DPI 변경 시 위치 복원.
 - Windows 10 지원 여부 (미검증).
 - 골이 실제보다 얼마나 늦게 반영되는지 (미측정).
 - 연기된 경기의 실제 상태 값 (`STATUS_POSTPONED` 예상, 실제 데이터로 확인 필요).
 - 릴리스 CI 구성(GitHub Actions)과 업데이터 서명키 보관 방식.
 - 앱이 설치본인지 zip인지 구분하는 방법 (업데이트 동작이 다름).
-- 현재 스캐폴드의 스파이크 잔여물 정리: `tauri.conf.json`의 `dwmsbt` 비교 창, `index.html`·`src/styles.css`의 테스트 카드.

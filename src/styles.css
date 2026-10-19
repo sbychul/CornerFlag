@@ -1,19 +1,709 @@
+/* Values follow Figma "CornerFlag — Widget Design" (D board, Menu & windows) and design.md. */
+:root {
+  color-scheme: dark;
+  font-family: "Outfit Variable", sans-serif;
+  --text: rgb(255 255 255 / 0.95);
+  --sub: rgb(255 255 255 / 0.62);
+  --dim: rgb(255 255 255 / 0.55);
+}
+
 html,
 body {
   margin: 0;
   height: 100%;
+  overflow: hidden;
   background: transparent;
+  color: var(--text);
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
-body {
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+:focus-visible {
+  outline: 1px solid rgb(255 255 255 / 0.5);
+  outline-offset: 1px;
+}
+
+hr {
+  margin: 0;
+  border: 0;
+  height: 1px;
+  flex-shrink: 0;
+  background: rgb(255 255 255 / 0.1);
+}
+
+svg {
+  flex-shrink: 0;
+}
+
+/* Dark see-through surface: top-left cut, inner border + highlight, bottom-right corner arc.
+   The windows are transparent, so the cut corner shows the desktop. */
+.surface {
+  --cut: 16px;
+  --arc: 88px;
+  --arc-c: rgb(255 255 255 / 0.07);
+  position: relative;
+  box-sizing: border-box;
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% 100%, 0 100%, 0 var(--cut));
+  background:
+    radial-gradient(circle at 100% 100%, transparent calc(var(--arc) - 1.5px), var(--arc-c) calc(var(--arc) - 1.5px) var(--arc), transparent var(--arc)),
+    var(--tint, none),
+    rgb(24 24 27 / var(--op, 0.86));
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.09),
+    inset 0 1px 0 rgb(255 255 255 / 0.12);
+}
+
+.surface::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: var(--cut);
+  height: var(--cut);
+  background: linear-gradient(to bottom right, transparent 50%, rgb(255 255 255 / 0.1) 50% calc(50% + 1px), transparent calc(50% + 1px));
+}
+
+/* ---------- widget card ---------- */
+
+.card {
+  width: 320px;
+  height: 146px;
+  padding: 11px 14px 12px;
   display: flex;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer; /* the whole card opens the Google search */
 }
 
-.marker {
-  flex: 1;
-  background: #ff00ff;
+.card.empty {
+  cursor: default;
 }
 
-.glass {
+.head {
+  height: 16px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.league {
   flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.warn {
+  display: flex;
+  color: #ffd60a;
+}
+
+.refresh {
+  display: flex;
+  color: var(--sub);
+}
+
+.refresh,
+.more {
+  opacity: 0;
+  transition: opacity 150ms;
+}
+
+.card:hover .refresh,
+.card:hover .more {
+  opacity: 1;
+}
+
+.match {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+}
+
+.team {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.team img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.name {
+  max-width: 100%;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kit {
+  width: 16px;
+  height: 2px;
+}
+
+.center {
+  width: 104px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.score {
+  display: flex;
+  gap: 8px;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+}
+
+.score .home,
+.score .away {
+  width: 36px;
+}
+
+.score .home {
+  text-align: right;
+}
+
+.clock {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--sub);
+}
+
+.dot {
+  position: relative;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ff3b30;
+  animation: dot 1.4s infinite;
+}
+
+.dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid #ff3b30;
+  box-sizing: border-box;
+  animation: ring 1.4s infinite;
+}
+
+.date {
+  font-size: 12px;
+  color: var(--sub);
+}
+
+.time {
+  font-size: 22.5px;
+  font-weight: 700;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+}
+
+.badge {
+  padding: 1px 7px;
+  border-radius: 2px;
+  font-size: 10.5px;
+  color: color-mix(in srgb, var(--c) 55%, white);
+  background: color-mix(in srgb, var(--c) 22%, transparent);
+}
+
+.badge.neutral {
+  color: var(--sub);
+  background: rgb(255 255 255 / 0.1);
+}
+
+.foot {
+  height: 23px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.foot hr {
+  background: rgb(255 255 255 / 0.12);
+}
+
+.events {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.goal {
+  flex: 1;
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.more {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--sub);
+  white-space: nowrap;
+}
+
+/* Not live: no foot row, More details floats bottom-centre. */
+.card > .more {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.none {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12.5px;
+  color: var(--sub);
+}
+
+/* Goal motion (design 2.7): flash 0-350 in / hold / out by 1650, score rolls up, goal line slides in at 350. */
+.flash {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  animation: flash 1650ms both;
+}
+
+.roll {
+  display: inline-block;
+  animation: roll 350ms ease-out;
+}
+
+.slide {
+  animation: slide 400ms 350ms ease-out both;
+}
+
+@keyframes dot {
+  to {
+    opacity: 0.35;
+  }
+}
+
+@keyframes ring {
+  to {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+
+@keyframes flash {
+  0% {
+    opacity: 0;
+  }
+  21%,
+  45% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes roll {
+  from {
+    transform: translateY(70%);
+    opacity: 0;
+  }
+}
+
+@keyframes slide {
+  from {
+    transform: translateX(-14px);
+    opacity: 0;
+  }
+}
+
+/* ---------- menu ---------- */
+
+.menu {
+  --cut: 8px;
+  --arc-c: transparent;
+  width: 196px;
+  height: 153px;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.menu button {
+  height: 32px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  font-size: 12.5px;
+  line-height: 14px;
+  color: rgb(255 255 255 / 0.92);
+  clip-path: polygon(5px 0, 100% 0, 100% 100%, 0 100%, 0 5px);
+}
+
+.menu button svg {
+  color: #d4d4d8;
+}
+
+.menu button:enabled:hover {
+  background: rgb(255 255 255 / 0.08);
+}
+
+.menu button:disabled {
+  color: rgb(255 255 255 / 0.38);
+}
+
+.menu button:disabled svg {
+  color: #9e9ea0;
+  opacity: 0.6;
+}
+
+.menu span {
+  flex: 1;
+  text-align: left;
+  text-box: trim-both cap alphabetic;
+}
+
+.menu em {
+  font-style: normal;
+  font-size: 11px;
+  color: rgb(255 255 255 / 0.45);
+  text-box: trim-both cap alphabetic;
+}
+
+.menu hr {
+  margin: 3px 6px;
+}
+
+/* ---------- settings / first run / about ---------- */
+
+.window {
+  --arc-c: rgb(255 255 255 / 0.06);
+  min-height: 100vh;
+  padding: 14px 24px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d4d4d8;
+}
+
+.close:hover {
+  background: rgb(255 255 255 / 0.08);
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--dim);
+}
+
+.settings {
+  --arc: 140px;
+  width: 560px;
+}
+
+.tabs {
+  display: flex;
+  gap: 18px;
+}
+
+.tabs button {
+  padding-bottom: 6px;
+  border-bottom: 2px solid transparent;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.tabs .on {
+  font-weight: 600;
+  color: var(--text);
+  border-color: rgb(255 255 255 / 0.9);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px 8px;
+  align-content: start;
+  min-height: 351px;
+}
+
+.grid button {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 4px;
+  border: 1px solid transparent;
+}
+
+.grid button:hover {
+  background: rgb(255 255 255 / 0.05);
+}
+
+.grid .on,
+.grid .on:hover {
+  background: rgb(255 255 255 / 0.08);
+  border-color: rgb(255 255 255 / 0.16);
+}
+
+.grid img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.grid span {
+  max-width: 100%;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Kit stripe space is always reserved so picking a team does not shift the grid. */
+.grid .kit {
+  visibility: hidden;
+}
+
+.grid .on .kit {
+  visibility: visible;
+}
+
+.error {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: var(--sub);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.row {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: rgb(255 255 255 / 0.92);
+}
+
+input.toggle {
+  appearance: none;
+  position: relative;
+  margin: 0;
+  width: 34px;
+  height: 18px;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 0.14);
+}
+
+input.toggle::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 1px;
+  background: rgb(255 255 255 / 0.75);
+  transition: left 120ms;
+}
+
+input.toggle:checked {
+  background: rgb(255 255 255 / 0.9);
+}
+
+input.toggle:checked::before {
+  left: 18px;
+  background: #18181b;
+}
+
+.slider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+input[type="range"] {
+  appearance: none;
+  margin: 0;
+  width: 180px;
+  height: 14px;
+  background:
+    linear-gradient(rgb(255 255 255 / 0.9), rgb(255 255 255 / 0.9)) 0 50% / var(--fill, 0%) 2px no-repeat,
+    linear-gradient(rgb(255 255 255 / 0.14), rgb(255 255 255 / 0.14)) 0 50% / 100% 2px no-repeat;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 8px;
+  height: 14px;
+  border-radius: 1px;
+  background: #fff;
+}
+
+.slider output {
+  width: 68px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--sub);
+}
+
+.seg {
+  display: flex;
+  border: 1px solid rgb(255 255 255 / 0.14);
+}
+
+.seg button {
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--dim);
+}
+
+.seg .on {
+  background: rgb(255 255 255 / 0.12);
+  color: var(--text);
+}
+
+.note {
+  font-size: 11px;
+  color: rgb(255 255 255 / 0.45);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: rgb(255 255 255 / 0.92);
+}
+
+.check input {
+  margin: 0;
+  accent-color: #fff;
+}
+
+.start {
+  align-self: flex-end;
+  padding: 7px 18px;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 0.9);
+  color: #18181b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.start:disabled {
+  opacity: 0.35;
+}
+
+.about {
+  --arc: 90px;
+  width: 360px;
+  gap: 12px;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.app b {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.app span {
+  font-size: 12px;
+  color: var(--dim);
+}
+
+.about dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.about dt {
+  color: var(--dim);
+}
+
+.about dd {
+  margin: 0;
+  text-align: right;
+  color: rgb(255 255 255 / 0.9);
+}
+
+.link {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgb(255 255 255 / 0.85);
 }

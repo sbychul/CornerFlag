@@ -150,5 +150,5 @@ HTTP 상태 코드만으로는 분류할 수 없다. 존재하지 않는 팀 ID�
 - Windows 10 지원 여부 (미검증).
 - 골이 실제보다 얼마나 늦게 반영되는지 (미측정).
 - 연기된 경기의 실제 상태 값 (`STATUS_POSTPONED` 예상, 실제 데이터로 확인 필요).
-- 릴리스 CI 구성(GitHub Actions)과 업데이터 서명키 보관 방식.
+- 업데이트 (Q4): 미구현. 릴리스 CI(`.github/workflows/release.yml`, `v*` 태그 → draft release에 NSIS 설치본 + 포터블 zip)는 있음. 첫 릴리스 뒤 About에서 GitHub `releases/latest`와 버전을 비교해 Releases 페이지를 여는 방식부터 넣고, 설치본 자동 설치(Tauri updater)는 서명키 보관 방식을 정한 뒤에 한다. 비공개 저장소면 API 확인과 다운로드가 안 된다.
 - 앱이 설치본인지 zip인지 구분하는 방법 (업데이트 동작이 다름).

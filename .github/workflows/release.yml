@@ -1,0 +1,58 @@
+# Push a tag like v1.0.0 (must match src-tauri/tauri.conf.json "version") to build a draft release
+# with the NSIS installer and a portable zip. Review the draft on GitHub, then publish it.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      - run: npm test
+
+      - id: tauri
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: CornerFlag ${{ github.ref_name }}
+          releaseBody: |
+            Download `CornerFlag_*_x64-setup.exe` (installer) or `CornerFlag-${{ github.ref_name }}-portable.zip`.
+            The app is not code-signed: if SmartScreen warns, click **More info** → **Run anyway**.
+          releaseDraft: true
+
+      # Tauri bundles only the installer. The release exe runs on its own (WebView2 comes with Windows 11).
+      - name: Portable zip
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $zip = "CornerFlag-${{ github.ref_name }}-portable.zip"
+          New-Item -ItemType Directory portable | Out-Null
+          Copy-Item src-tauri/target/release/cornerflag.exe portable/CornerFlag.exe
+          Compress-Archive portable/* $zip
+          # Upload by release id: a draft release cannot be looked up by its tag.
+          gh api --method POST -H "Content-Type: application/zip" `
+            "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.tauri.outputs.releaseId }}/assets?name=$zip" `
+            --input $zip

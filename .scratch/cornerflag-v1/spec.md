@@ -5,6 +5,7 @@ Status: needs-triage
 바탕화면에 두는 미니멀한 축구 위젯. 응원하는 팀 하나의 직전 경기 결과, 다음 경기, 진행 중인 경기를 카드 한 장으로 보여준다. 자세한 정보는 위젯이 직접 보여주지 않고 구글 검색으로 넘긴다.
 
 - 근거가 된 질문과 답: [qa.md](qa.md) (본문의 `Q#`는 그 문서의 질문 번호)
+- 화면·버튼·표시 내용: [design.md](design.md)
 - 기술 검증 결과: [verification.md](verification.md)
 
 ## 1. 범위
@@ -38,12 +39,9 @@ Status: needs-triage
 
 ## 3. 첫 실행
 
-1. 리그 선택 (5개)
-2. 팀 선택 (해당 리그의 팀 목록, 로고 포함) (Q12)
-3. "Windows 시작 시 실행" 체크박스 (Q8)
-4. 위젯 표시
+첫 실행 때 응원 팀과 Windows 시작 시 실행 여부를 정한다. 화면 구성은 [design.md](design.md) 5절.
 
-응원 팀은 설정에서 같은 흐름으로 바꿀 수 있다. 팀을 바꾸면 캐시를 버리고 즉시 갱신한다.
+응원 팀은 설정에서 바꿀 수 있다. 팀을 바꾸면 캐시를 버리고 즉시 갱신한다.
 
 ## 4. 창 동작
 
@@ -51,7 +49,8 @@ Status: needs-triage
   - 구현: 최상위 창의 소유자를 `Progman`으로 지정(`SetWindowLongPtrW(GWLP_HWNDPARENT)`)하고 `HWND_BOTTOM`에 둔다. WorkerW나 DefView의 자식 창으로 붙이는 방식은 쓰지 않는다 ([verification.md](verification.md) 6절).
   - Tauri 창 설정: `decorations: false`, `transparent: true`, `shadow: false`, `resizable: false`, `skipTaskbar: true`, `alwaysOnBottom: true`.
 - **위치** (Q6): 드래그로 옮기고 위치를 기억한다. 저장된 위치가 화면 밖이면(해상도·모니터 변경) 기본 위치로 되돌린다. 설정에 위치 잠금 옵션이 있다 (Q27).
-- **메뉴** (Q7): 트레이 아이콘과 위젯 우클릭에 같은 메뉴(Settings, Refresh, Quit)를 둔다.
+- **메뉴** (Q7): 트레이 아이콘과 위젯 우클릭에 같은 메뉴를 둔다. 항목은 [design.md](design.md) 3절.
+- **배경 아크릴릭** (Q26): 비공개 API `SetWindowCompositionAttribute`(`ACCENT_ENABLE_ACRYLICBLURBEHIND`)로 구현한다. Tauri 내장 `windowEffects: ["acrylic"]`(DWM system backdrop)은 비활성 창에서 단색으로만 나와서 쓰지 않는다 ([verification.md](verification.md) 6절). SWCA 호출이 실패하면 CSS 반투명 배경으로 대체한다 (Q29).
 - 앱은 하나만 실행된다 (single-instance).
 
 ## 5. 표시 규칙
@@ -69,28 +68,14 @@ Status: needs-triage
 - 48시간과 24시간은 모두 킥오프 시각 기준이다.
 - 다음 경기가 연기되면 원래 킥오프 시각까지 `Postponed` 배지와 함께 보여주고, 그 뒤에는 다음 경기로 넘어간다 (Q20).
 
-### 5.2 카드 구성
+각 상태에서 카드에 무엇을 표시하는지, 색을 어떻게 칠하는지는 [design.md](design.md) 2절.
 
-- 홈팀이 왼쪽, 원정팀이 오른쪽. 별도의 홈/원정 배지는 없다 (Q13).
-- 팀 로고, 팀명(ESPN `displayName`, 길면 말줄임), 대회명(ESPN `league.abbreviation`, 예: `Premier League`, `UEFA Champions League`) (Q13, Q15).
-- UI 문구는 영어 (Q16).
-- 다음 경기: 절대 날짜·시각, 로컬 타임존 기준. 예: `Oct 24 (Sat) 20:00`. 12·24시간제는 설정에서 고른다 (Q21, Q27).
-- 직전 결과: 최종 스코어. 승부차기는 `1–1 (4–3 PEN)`처럼 표기한다.
-- 실시간: 스코어와 경기 상태(ESPN `status.type.shortDetail`, 예: `67'`, `HT`). 카드 아래에 가장 최근 득점 한 건을 `Goal! 67' Haaland` 형식으로 한 줄 표시한다. ESPN이 알려주면 PK는 `(P)`, 자책골은 `(OG)`를 붙인다. 경기가 끝나면 이 줄은 없앤다 (Q14, Q18).
+### 5.2 구글 검색
 
-### 5.3 색
+카드를 클릭하면 기본 브라우저로 구글 검색을 연다 (Q23).
 
-- 배경은 반투명 아크릴릭이고, 투명도는 설정에서 조절한다 (Q26, Q27).
-- 종료된 경기: 승리 팀의 색으로 위젯을 은은하게 칠한다. 무승부는 중립색 (Q13).
-- 진행 중: 리드하는 팀의 색으로 칠하고, 동점이면 중립색 (Q17).
-- 팀 색은 ESPN 팀 `color` 값을 그대로 쓴다. 흰색이나 검정인 팀도 예외 없이 그 색으로 칠한다 (Q36). 값이 없으면 중립색.
-- 아크릴릭 구현은 비공개 API `SetWindowCompositionAttribute`(`ACCENT_ENABLE_ACRYLICBLURBEHIND`)를 쓴다. Tauri 내장 `windowEffects: ["acrylic"]`(DWM system backdrop)은 비활성 창에서 단색으로만 나와서 쓰지 않는다 ([verification.md](verification.md) 6절). SWCA 호출이 실패하면 CSS 반투명 배경으로 대체한다 (Q29).
-
-### 5.4 상호작용
-
-- 카드 어디를 클릭해도 기본 브라우저로 구글 검색을 연다. 누른 뒤 거의 움직이지 않으면 클릭, 움직이면 드래그로 구분한다 (Q23).
-- 검색어: `{대회명} {홈팀} vs {원정팀} {YYYY-MM-DD}`. 날짜는 킥오프의 UTC 날짜다 (Q28). 예: `Premier League Manchester City vs Arsenal 2026-10-18`.
-- 마우스를 올리면 모서리에 새로고침 버튼(↻)이 나타난다. 메뉴의 Refresh와 같다 (Q24).
+- 검색어: `{대회명} {홈팀} vs {원정팀} {YYYY-MM-DD}`. 날짜는 킥오프의 UTC 날짜다 (Q28).
+- 예: `Premier League Manchester City vs Arsenal 2026-10-18`.
 
 ## 6. 데이터 소스 (ESPN 비공식 API)
 
@@ -146,16 +131,11 @@ HTTP 상태 코드만으로는 분류할 수 없다. 존재하지 않는 팀 ID�
 
 공통:
 - 화면에는 마지막으로 받은 데이터를 그대로 둔다. 데이터는 디스크에도 캐시해서 재시작 직후에도 바로 보여준다.
-- 연속 2회 실패하면 구석에 ⚠를 표시한다. 마우스를 올리면 마지막 갱신 시각을 보여준다.
+- 연속 2회 실패하면 ⚠를 표시한다. 표시 내용은 [design.md](design.md) 4절.
 
 ## 9. 설정과 저장
 
-설정 항목:
-- 응원 팀 (리그 slug + 팀 ID)
-- Windows 시작 시 실행
-- 투명도
-- 위치 잠금
-- 12·24시간제
+설정 항목은 [design.md](design.md) 6절. 응원 팀은 리그 slug와 팀 ID로 저장한다.
 
 저장 위치는 Tauri 앱 데이터 디렉터리(`%APPDATA%\io.github.sbychul.cornerflag\`)다. 설정, 창 위치, 마지막 응답 캐시를 JSON으로 저장한다. (설계 초기에 `%APPDATA%\CornerFlag\`로 적었던 것을 Tauri 기본 경로로 바꿈)
 

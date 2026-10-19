@@ -1,6 +1,6 @@
 # CornerFlag v1 — 설계 QA 기록
 
-2026-10-19 설계 세션에서 오간 질문과 답. 각 질문의 선택지 중 `(추천)`은 질문 당시 제시한 권장안이고, **답**은 최종 결정이다. 이 결정들을 정리한 명세는 [spec.md](spec.md), 검증 결과는 [verification.md](verification.md)에 있다.
+2026-10-19 설계 세션에서 오간 질문과 답. 각 질문의 선택지 중 `(추천)`은 질문 당시 제시한 권장안이고, **답**은 최종 결정이다. 이 결정들을 정리한 명세는 [spec.md](spec.md), 화면·버튼·표시 내용은 [design.md](design.md), 검증 결과는 [verification.md](verification.md)에 있다.
 
 ## 0. 출발점 (사용자 초기 구상)
 

@@ -49,7 +49,9 @@ Status: needs-triage
   - 구현: 최상위 창의 소유자를 `Progman`으로 지정(`SetWindowLongPtrW(GWLP_HWNDPARENT)`)하고 `HWND_BOTTOM`에 둔다. WorkerW나 DefView의 자식 창으로 붙이는 방식은 쓰지 않는다 ([verification.md](verification.md) 6절).
   - Tauri 창 설정: `decorations: false`, `transparent: true`, `shadow: false`, `resizable: false`, `skipTaskbar: true`, `alwaysOnBottom: true`.
 - **위치** (Q6): 드래그로 옮기고 위치를 기억한다. 저장된 위치가 화면 밖이면(해상도·모니터 변경) 기본 위치로 되돌린다. 설정에 위치 잠금 옵션이 있다 (Q27).
-- **메뉴** (Q7): 트레이 아이콘과 위젯 우클릭에 같은 메뉴를 둔다. 항목은 [design.md](design.md) 3절.
+- **메뉴** (Q7, Q66, Q68): 위젯 우클릭과 트레이 아이콘 우클릭에 같은 드롭다운 메뉴를 띄운다. 항목과 모양은 [design.md](design.md) 3.1절.
+  - Windows 기본 트레이 메뉴는 모양을 바꿀 수 없으므로, 메뉴는 별도의 프레임리스 팝업 창(투명, 작업 표시줄에 안 보임, 항상 위)으로 만든다. 포커스를 잃으면 닫는다.
+  - 메뉴 창을 활성화해도 위젯 창은 활성화하지 않는다. 위젯이 다른 창 위로 올라오지 않게 하려는 것이다(10절).
 - **배경 아크릴릭** (Q26): 비공개 API `SetWindowCompositionAttribute`(`ACCENT_ENABLE_ACRYLICBLURBEHIND`)로 구현한다. Tauri 내장 `windowEffects: ["acrylic"]`(DWM system backdrop)은 비활성 창에서 단색으로만 나와서 쓰지 않는다 ([verification.md](verification.md) 6절). SWCA 호출이 실패하면 CSS 반투명 배경으로 대체한다 (Q29).
 - 앱은 하나만 실행된다 (single-instance).
 
@@ -143,7 +145,7 @@ HTTP 상태 코드만으로는 분류할 수 없다. 존재하지 않는 팀 ID�
 ## 10. 미결·후속 검증
 
 - explorer.exe가 재시작되면 Progman이 새로 만들어진다. `TaskbarCreated` 메시지를 받아 소유자를 다시 지정해야 할 것으로 보이며, 검증이 필요하다.
-- 프로그램에서 위젯을 강제로 활성화하면(`SetForegroundWindow`) 다른 창 위로 올라온다. 사용자 클릭으로는 생기지 않았다. 위젯에 활성화를 일으키는 동작을 넣게 되면 `WS_EX_NOACTIVATE`를 적용한다.
+- 프로그램에서 위젯을 강제로 활성화하면(`SetForegroundWindow`) 다른 창 위로 올라온다. 사용자 클릭으로는 생기지 않았다. 위젯에 활성화를 일으키는 동작을 넣게 되면 `WS_EX_NOACTIVATE`를 적용한다. 우클릭 메뉴 팝업을 띄우고 닫을 때 위젯 z-순서가 바뀌지 않는지 검증이 필요하다.
 - SWCA 아크릴릭 상태에서 창을 드래그할 때의 성능 (이 API는 드래그 시 끊긴다는 보고가 있음).
 - 멀티 모니터, DPI 변경 시 위치 복원.
 - Windows 10 지원 여부 (미검증).

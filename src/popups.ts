@@ -44,24 +44,55 @@ export async function menu() {
   await win.onFocusChanged(({ payload }) => (payload ? paint() : win.hide()));
 }
 
+const REPO = "https://github.com/sbychul/CornerFlag";
+
+/** Spec 2 (Q4), zip-style for both builds: compare with the latest GitHub release and link to it. */
+async function checkUpdate(version: string) {
+  const box = document.querySelector<HTMLElement>(".update")!;
+  const show = (state: string, text: string) => {
+    box.className = `update ${state}`;
+    box.querySelector("span")!.textContent = text;
+  };
+  try {
+    const r = await fetch("https://api.github.com/repos/sbychul/CornerFlag/releases/latest", { signal: AbortSignal.timeout(10_000) });
+    const latest = String(r.ok && (await r.json()).tag_name).replace(/^v/, "");
+    if (!/^\d+(\.\d+)*$/.test(latest)) throw new Error(`no release tag (${r.status})`);
+    // numeric compare: 1.10.0 > 1.9.0; a dev build ahead of the release counts as up to date
+    if (latest.localeCompare(version, undefined, { numeric: true }) > 0) {
+      show("available", `Update available: v${latest}`);
+      box.querySelector("button")!.onclick = () => openUrl(`${REPO}/releases/latest`);
+    } else show("ok", "Up to date");
+  } catch {
+    show("unknown", "Couldn't check for updates");
+  }
+}
+
 export async function about() {
+  const version = await getVersion();
   document.body.innerHTML = `<div class="window surface about">
     <div class="title" data-tauri-drag-region><span data-tauri-drag-region>About</span><button class="close" title="Close">${ICON.close}</button></div>
-    <div class="app">${wordmark}<span>Version ${esc(await getVersion())}</span></div>
+    <div class="app">${wordmark}<span>Version ${esc(version)}</span></div>
+    <div class="update"><i></i><span>Checking for updates…</span><button>Download ${ICON.arrow}</button></div>
     <hr>
     <dl><dt>Your team</dt><dd class="v-team"></dd><dt>Last updated</dt><dd class="v-last"></dd>
       <dt>Data</dt><dd>ESPN (unofficial API)</dd><dt>License</dt><dd>MIT</dd></dl>
     <button class="link">View on GitHub ${ICON.arrow}</button>
   </div>`;
   document.querySelector(".close")!.addEventListener("click", () => win.hide());
-  document.querySelector(".link")!.addEventListener("click", () => openUrl("https://github.com/sbychul/CornerFlag"));
+  document.querySelector(".link")!.addEventListener("click", () => openUrl(REPO));
   const fill = () => {
     const last = read<number>("cf.lastOk");
     document.querySelector(".v-team")!.textContent = load().team ?? "—";
     document.querySelector(".v-last")!.textContent = last ? `${fmtDate(new Date(last))} ${fmtTime(new Date(last))}` : "—";
   };
-  fill();
   await document.fonts.ready;
   await win.setSize(new LogicalSize(360, document.querySelector<HTMLElement>(".about")!.offsetHeight));
-  await win.onFocusChanged(({ payload }) => payload && fill());
+  // Re-check at most hourly: the About page lives as long as the app (GitHub allows 60 unauthenticated calls/h).
+  let checked = 0;
+  const refreshAll = () => {
+    fill();
+    if (Date.now() - checked > 3_600_000) (checked = Date.now()), checkUpdate(version);
+  };
+  refreshAll();
+  await win.onFocusChanged(({ payload }) => payload && refreshAll());
 }

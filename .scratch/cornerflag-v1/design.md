@@ -252,7 +252,7 @@ Settings 창과 같은 창에서 팀 영역만 보여준다 (Q8, Q12, Q44). Figm
 | 영역 | 내용 |
 |---|---|
 | 앱 | 글자 포함 로고, 그 아래 `Version 1.0.0`(12px, 흰색 55%) |
-| 업데이트 상태 | 흰색 6% 바탕 상자. 최신이면 초록 점(`#34c759`) + `Up to date`. 새 버전이 있으면 `Update available` + 설치 동작(설치본은 설치 후 재시작, zip은 Releases 페이지) (Q4) |
+| 업데이트 상태 | 흰색 6% 바탕 상자(높이 27px, 여백 0/10px, 12px 흰색 85%, 점 6px). 확인 중·실패는 흰색 30% 점 + `Checking for updates…` / `Couldn't check for updates`. 최신이면 초록 점(`#34c759`) + `Up to date`. 새 버전이 있으면 노란 점(`#ffd60a`) + `Update available: vX` + 오른쪽 `Download ↗`(Releases 페이지). 설치본 자동 설치는 아직 없음 (Q4) |
 | 정보 | 왼쪽 이름(흰색 55%), 오른쪽 값(흰색 90%), 12px: `Your team`, `Last updated`(마지막 성공 갱신 시각), `Data`(`ESPN (unofficial API)`), `License`(`MIT`) |
 | 링크 | `View on GitHub ↗` |
 

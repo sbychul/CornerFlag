@@ -126,6 +126,15 @@ svg {
   opacity: 1;
 }
 
+/* Manual refresh in flight: keep ↻ visible and spin it until the data is back. */
+.loading .refresh {
+  opacity: 1;
+}
+
+.loading .refresh svg {
+  animation: spin 0.9s linear infinite;
+}
+
 .match {
   flex: 1;
   min-height: 0;
@@ -311,6 +320,12 @@ svg {
 
 .slide {
   animation: slide 400ms 350ms ease-out both;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes dot {

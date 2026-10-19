@@ -53,7 +53,8 @@ pub fn run() {
             #[cfg(windows)]
             desktop::pin(app.get_webview_window("main").expect("main window").hwnd()?.0 as _);
             TrayIconBuilder::new()
-                .icon(app.default_window_icon().expect("bundle icon").clone())
+                // The logo itself (white mark, made for the dark taskbar), not the exe's embedded icon resource.
+                .icon(tauri::include_image!("icons/32x32.png"))
                 .tooltip("CornerFlag")
                 .show_menu_on_left_click(false)
                 .on_tray_icon_event(|tray, event| {

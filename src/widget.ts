@@ -16,16 +16,15 @@ let failure: Backoff | undefined;
 let busy = false;
 let timer: number | undefined;
 let period = 0; // current refresh interval, for resume
-let lastReq = 0;
+let lastTick = 0;
 let cooldownUntil = 0;
 let blockedUntil = 0;
+let loading = false; // manual refresh in flight: spin the ↻
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-// Spec 7.3: one request at a time (the loop is serial) and at least 5 s apart.
+// Spec 7.3: one request at a time (the loop is serial); refreshes start at least 5 s apart (tick).
 async function get(path: string) {
-  await sleep(lastReq + 5000 - Date.now());
-  lastReq = Date.now();
   let r: Response;
   try {
     r = await fetch(BASE + path, { signal: AbortSignal.timeout(10_000) });
@@ -51,6 +50,8 @@ async function tick() {
   const team = s.teamId;
   if (!team) return;
   busy = true;
+  await sleep(lastTick + 5000 - Date.now());
+  lastTick = Date.now();
   try {
     let m = shown;
     if (m && watching(m, Date.now())) {
@@ -72,6 +73,8 @@ async function tick() {
     render();
   }
   busy = false;
+  loading = false;
+  card.classList.remove("loading");
   timer = setTimeout(tick, team === s.teamId ? period : 0);
 }
 
@@ -80,6 +83,8 @@ function refresh() {
   if (busy || now < Math.max(cooldownUntil, blockedUntil)) return;
   cooldownUntil = now + 5000;
   write("cf.cooldown", cooldownUntil);
+  loading = true;
+  card.classList.add("loading");
   tick();
 }
 
@@ -136,14 +141,14 @@ function render(goal?: "home" | "away") {
   const head = (league: string) =>
     `<div class="head"><span class="league">${esc(league)}</span>${warning()}<button class="refresh" title="Refresh">${ICON.refresh}</button></div>`;
   if (!m) {
-    card.className = "card surface empty";
+    card.className = `card surface empty${loading ? " loading" : ""}`;
     card.style.removeProperty("--tint");
     card.innerHTML = head("") + `<div class="none">No upcoming matches</div>`;
     return;
   }
   const w = lead(m);
   const tint = w && m[w].color;
-  card.className = `card surface ${m.state}`;
+  card.className = `card surface ${m.state}${loading ? " loading" : ""}`;
   card.style.setProperty("--tint", tint ? `linear-gradient(to ${w === "home" ? "right" : "left"}, ${tint}66, ${tint}00)` : "none");
   const more = `<span class="more">More details ${ICON.arrow}</span>`;
   const flash = goal && m[goal].color;

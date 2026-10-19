@@ -26,6 +26,13 @@ button {
   padding: 0;
 }
 
+/* Everything clickable shows the hand, so it reads as interactive (tabs, team grid, toggles, sliders, menu, links). */
+button:enabled,
+input:enabled,
+.check {
+  cursor: pointer;
+}
+
 :focus-visible {
   outline: 1px solid rgb(255 255 255 / 0.5);
   outline-offset: 1px;
@@ -728,12 +735,6 @@ input[type="range"]::-webkit-slider-thumb {
 
 .update.available button {
   display: flex;
-}
-
-/* Links out to GitHub. */
-.link,
-.update button {
-  cursor: pointer;
 }
 
 .about dl {

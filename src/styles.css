@@ -730,6 +730,12 @@ input[type="range"]::-webkit-slider-thumb {
   display: flex;
 }
 
+/* Links out to GitHub. */
+.link,
+.update button {
+  cursor: pointer;
+}
+
 .about dl {
   display: grid;
   grid-template-columns: auto 1fr;

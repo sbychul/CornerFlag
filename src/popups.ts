@@ -6,7 +6,7 @@ import { LogicalSize, getCurrentWindow } from "@tauri-apps/api/window";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import wordmark from "../src-tauri/icons/logo-wordmark.svg?raw";
-import { ICON, esc, fmtDate, fmtTime, load, read } from "./common.ts";
+import { ICON, REPO, esc, fmtDate, fmtTime, load, newerRelease, read } from "./common.ts";
 
 const win = getCurrentWindow();
 
@@ -44,9 +44,7 @@ export async function menu() {
   await win.onFocusChanged(({ payload }) => (payload ? paint() : win.hide()));
 }
 
-const REPO = "https://github.com/sbychul/CornerFlag";
-
-/** Spec 2 (Q4), zip-style for both builds: compare with the latest GitHub release and link to it. */
+/** Compare with the latest GitHub release and link to it. */
 async function checkUpdate(version: string) {
   const box = document.querySelector<HTMLElement>(".update")!;
   const show = (state: string, text: string) => {
@@ -54,11 +52,8 @@ async function checkUpdate(version: string) {
     box.querySelector("span")!.textContent = text;
   };
   try {
-    const r = await fetch("https://api.github.com/repos/sbychul/CornerFlag/releases/latest", { signal: AbortSignal.timeout(10_000) });
-    const latest = String(r.ok && (await r.json()).tag_name).replace(/^v/, "");
-    if (!/^\d+(\.\d+)*$/.test(latest)) throw new Error(`no release tag (${r.status})`);
-    // numeric compare: 1.10.0 > 1.9.0; a dev build ahead of the release counts as up to date
-    if (latest.localeCompare(version, undefined, { numeric: true }) > 0) {
+    const latest = await newerRelease(version);
+    if (latest) {
       show("available", `Update available: v${latest}`);
       box.querySelector("button")!.onclick = () => openUrl(`${REPO}/releases/latest`);
     } else show("ok", "Up to date");

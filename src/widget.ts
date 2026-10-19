@@ -1,9 +1,10 @@
 // The desktop card: data loop (spec 7, 8), rendering (design 2) and click/drag/menu (design 3).
+import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { LogicalSize, PhysicalPosition, availableMonitors, getCurrentWindow, primaryMonitor } from "@tauri-apps/api/window";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { ICON, esc, fmtDate, fmtTime, load, read, write } from "./common.ts";
+import { ICON, REPO, esc, fmtDate, fmtTime, load, newerRelease, read, write } from "./common.ts";
 import { BASE, backoff, nextDelay, pick, refine, searchUrl, watching } from "./espn.ts";
 import type { Backoff, Failure, Match, Side } from "./espn.ts";
 
@@ -19,6 +20,7 @@ let period = 0; // current refresh interval, for resume
 let lastTick = 0;
 let cooldownUntil = 0;
 let blockedUntil = 0;
+let update: string | undefined; // newer release version, shown as the Update badge
 // One ↻ for the card's lifetime: re-rendering would replace the element and cut its spin short.
 const refreshButton = Object.assign(document.createElement("button"), { className: "refresh", title: "Refresh", innerHTML: ICON.refresh });
 
@@ -137,11 +139,15 @@ function warning() {
   return `<span class="warn" title="${esc(tip)}">${ICON.warn}</span>`;
 }
 
+// Always visible, unlike ↻: otherwise a new release only shows up in About.
+const updateBadge = () =>
+  update ? `<button class="badge upd" style="--c:#ffd60a" title="Update available: v${esc(update)}">Update</button>` : "";
+
 function render(goal?: "home" | "away") {
   const m = shown;
   card.style.setProperty("--op", String(s.opacity / 100));
   const head = (league: string) =>
-    `<div class="head"><span class="league">${esc(league)}</span>${warning()}<i class="slot"></i></div>`;
+    `<div class="head"><span class="league">${esc(league)}</span>${warning()}${updateBadge()}<i class="slot"></i></div>`;
   const paint = (html: string) => {
     card.innerHTML = html;
     card.querySelector(".slot")!.replaceWith(refreshButton);
@@ -211,6 +217,7 @@ export async function widget() {
     if (!down) return;
     down = undefined;
     if ((e.target as Element).closest(".refresh")) refresh();
+    else if ((e.target as Element).closest(".upd")) openUrl(`${REPO}/releases/latest`);
     else if (shown) openUrl(searchUrl(shown));
   });
   card.addEventListener("contextmenu", () => invoke("show_menu"));
@@ -234,6 +241,15 @@ export async function widget() {
   addEventListener("online", () => {
     if (!busy && Date.now() - (read<number>("cf.lastOk") ?? 0) > period) tick();
   });
+
+  // Same check as About, hourly (GitHub allows 60 unauthenticated calls/h); a failed check keeps the last answer.
+  const version = await getVersion();
+  const checkUpdate = async () => {
+    const latest = await newerRelease(version).catch(() => update);
+    if (latest !== update) (update = latest), render();
+  };
+  checkUpdate();
+  setInterval(checkUpdate, 3_600_000);
 
   if (s.teamId) start(); // first run: the settings window shows itself and sends "settings" once a team is picked
 }

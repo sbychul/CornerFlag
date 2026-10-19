@@ -42,6 +42,17 @@ export const fmtDate = (d: Date) =>
 export const fmtTime = (d: Date, h24 = load().h24) =>
   d.toLocaleTimeString("en-US", { hour: h24 ? "2-digit" : "numeric", minute: "2-digit", hourCycle: h24 ? "h23" : "h12" });
 
+export const REPO = "https://github.com/sbychul/CornerFlag";
+
+/** Spec 2 (Q4), zip-style for both builds: the latest GitHub release when it is newer than `version`. Throws when it can't tell. */
+export async function newerRelease(version: string) {
+  const r = await fetch("https://api.github.com/repos/sbychul/CornerFlag/releases/latest", { signal: AbortSignal.timeout(10_000) });
+  const latest = String(r.ok && (await r.json()).tag_name).replace(/^v/, "");
+  if (!/^\d+(\.\d+)*$/.test(latest)) throw new Error(`no release tag (${r.status})`);
+  // numeric compare: 1.10.0 > 1.9.0; a dev build ahead of the release counts as up to date
+  return latest.localeCompare(version, undefined, { numeric: true }) > 0 ? latest : undefined;
+}
+
 const svg = (size: number, body: string) =>
   `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 

@@ -105,6 +105,8 @@ export const ICON = {
   reload: svg(14, `<path stroke-width="1.23" d="M11.81 7a4.81 4.81 0 1 1-1.4-3.41"/><path stroke-width="1.23" d="M11.81 2.19v2.62H9.19"/>`),
   about: svg(14, `<g stroke-width="1.23"><circle cx="7" cy="7" r="5.25"/><path d="M7 6.39v3.24"/></g><circle cx="7" cy="4.38" r=".79" fill="currentColor" stroke="none"/>`),
   quit: svg(14, `<path stroke-width="1.23" d="M7 1.75v4.81M3.94 3.68a4.38 4.38 0 1 0 6.12 0"/>`),
+  chevron: svg(12, `<path stroke-width="1.25" d="M3 4.5 6 7.5 9 4.5"/>`),
+  check: svg(14, `<path stroke-width="1.3" d="M3 7.2 5.8 10 11 4.5"/>`),
 };
 
 // Every window draws its own dark surface; the native context menu would only get in the way.

@@ -26,10 +26,9 @@ button {
   padding: 0;
 }
 
-/* Everything clickable shows the hand, so it reads as interactive (tabs, team grid, toggles, sliders, menu, links). */
+/* Everything clickable shows the hand, so it reads as interactive (league dropdown, team grid, toggles, sliders, menu, links). */
 button:enabled,
-input:enabled,
-.check {
+input:enabled {
   cursor: pointer;
 }
 
@@ -475,30 +474,122 @@ svg {
   width: 560px;
 }
 
-.tabs {
+/* League dropdown: square, opens over the team grid. */
+.select {
+  position: relative;
+  align-self: flex-start;
+}
+
+.value {
+  width: 200px;
+  height: 32px;
+  box-sizing: border-box;
   display: flex;
-  gap: 18px;
-}
-
-.tabs button {
-  padding-bottom: 6px;
-  border-bottom: 2px solid transparent;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 0 12px;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  background: rgb(255 255 255 / 0.08);
   font-size: 13px;
-  color: var(--dim);
-}
-
-.tabs .on {
   font-weight: 600;
-  color: var(--text);
-  border-color: rgb(255 255 255 / 0.9);
 }
 
+.value span {
+  flex: 1;
+  text-align: left;
+}
+
+.value svg {
+  opacity: 0.8;
+  transition: transform 120ms;
+}
+
+.value[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.options {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 1;
+  width: 200px;
+  max-height: 340px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: 1px solid rgb(255 255 255 / 0.09);
+  background: rgb(24 24 27 / 0.96);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 0.5);
+}
+
+.options[hidden] {
+  display: none;
+}
+
+.options .group {
+  padding: 6px 10px 3px;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: rgb(255 255 255 / 0.45);
+}
+
+.options hr {
+  margin: 3px 0;
+  background: rgb(255 255 255 / 0.08);
+}
+
+.options button {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  color: rgb(255 255 255 / 0.92);
+}
+
+.options button span {
+  flex: 1;
+  text-align: left;
+}
+
+.options button:hover {
+  background: rgb(255 255 255 / 0.05);
+}
+
+.options .on,
+.options .on:hover {
+  background: rgb(255 255 255 / 0.08);
+  font-weight: 600;
+}
+
+.options svg {
+  visibility: hidden;
+}
+
+.options .on svg {
+  visibility: visible;
+}
+
+.options,
 .grid {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.22) transparent;
+}
+
+/* Fixed at four rows so the window keeps its size; MLS (30 teams) scrolls. */
+.grid {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 6px 8px;
   align-content: start;
-  min-height: 351px;
+  height: 358px; /* 4 rows of 85px + 6px gaps */
+  overflow-y: auto;
 }
 
 .grid button {
@@ -647,19 +738,6 @@ input[type="range"]::-webkit-slider-thumb {
 .note {
   font-size: 11px;
   color: rgb(255 255 255 / 0.45);
-}
-
-.check {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: rgb(255 255 255 / 0.92);
-}
-
-.check input {
-  margin: 0;
-  accent-color: #fff;
 }
 
 .start {

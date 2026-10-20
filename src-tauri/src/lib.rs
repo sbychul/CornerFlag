@@ -1,5 +1,7 @@
 #[cfg(windows)]
 mod desktop;
+#[cfg(target_os = "macos")]
+mod macos;
 
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, LogicalSize, Manager, PhysicalPosition, PhysicalSize};
@@ -38,38 +40,8 @@ fn set_autostart(on: bool) {
     #[cfg(windows)]
     desktop::autostart(on);
     #[cfg(target_os = "macos")]
-    launch_agent(on);
+    macos::autostart(on);
 }
-
-/// Open at login via a per-user LaunchAgent.
-#[cfg(target_os = "macos")]
-fn launch_agent(on: bool) {
-    let Some(home) = std::env::var_os("HOME") else { return };
-    let dir = std::path::Path::new(&home).join("Library/LaunchAgents");
-    let plist = dir.join("io.github.sbychul.cornerflag.plist");
-    if !on {
-        let _ = std::fs::remove_file(plist);
-        return;
-    }
-    // ponytail: exe path is not XML-escaped, fine for /Applications/CornerFlag.app
-    let exe = std::env::current_exe().unwrap_or_default();
-    let _ = std::fs::create_dir_all(&dir);
-    let _ = std::fs::write(
-        plist,
-        format!(
-            r#"<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-<key>Label</key><string>io.github.sbychul.cornerflag</string>
-<key>ProgramArguments</key><array><string>{}</string></array>
-<key>RunAtLoad</key><true/>
-</dict></plist>
-"#,
-            exe.display()
-        ),
-    );
-}
-
 #[tauri::command]
 fn quit(app: AppHandle) {
     app.exit(0);
@@ -90,6 +62,8 @@ pub fn run() {
             // region needed for the cut made Windows draw the classic caption.
             #[cfg(windows)]
             desktop::pin(app.get_webview_window("main").expect("main window").hwnd()?.0 as _);
+            #[cfg(target_os = "macos")]
+            macos::pin(app.get_webview_window("main").expect("main window").ns_window()?);
             // Menu bar app: no Dock icon, no Cmd+Tab entry.
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);

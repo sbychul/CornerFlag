@@ -12,7 +12,7 @@ A little Flag for your Corner of the pitch.
 
 A minimal football widget for the Windows and macOS desktop. Pick one club and it shows the club's live match, next match or latest result on a single card that stays on your desktop.
 
-- Clubs from the top five European leagues (Premier League, LALIGA, Bundesliga, Serie A, Ligue 1)
+- Clubs from the European tier-1 leagues (Premier League, LALIGA, Bundesliga, Serie A, Ligue 1, etc.), MLS, and Saudi Pro League
 - Every official competition: league, domestic cups, super cups, UEFA. Friendlies are skipped.
 - Live score every 10 seconds, with the latest goal scorer
 - Click the card for a Google search on the match. That's where the details live.

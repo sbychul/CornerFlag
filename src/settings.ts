@@ -1,7 +1,7 @@
 // Settings window (design 6) and, while no team is saved, the first-run screen in the same window (design 7).
 import { invoke } from "@tauri-apps/api/core";
-import { LogicalSize, getCurrentWindow } from "@tauri-apps/api/window";
-import { ICON, esc, load, save } from "./common.ts";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { ICON, esc, load, popup, save } from "./common.ts";
 import { BASE } from "./espn.ts";
 
 type Team = { id: string; short: string; logo: string };
@@ -111,7 +111,6 @@ export async function settings() {
     if (first) $<HTMLButtonElement>(".start").disabled = false;
     else save({ league, teamId: picked, team: pickedName });
   });
-  $(".close").addEventListener("click", () => (first ? invoke("quit") : win.hide()));
 
   const autostart = $<HTMLInputElement>(".autostart");
   if (first) {
@@ -145,7 +144,7 @@ export async function settings() {
   LEAGUES.forEach(([slug]) => fetchTeams(slug)); // tab switches are instant afterwards
   await drawGrid();
   await document.fonts.ready;
-  await win.setSize(new LogicalSize(560, $<HTMLElement>(".window").offsetHeight));
-  await win.center();
-  if (first) await win.show();
+  const { show, close } = popup(560, $<HTMLElement>(".window").offsetHeight);
+  $(".close").addEventListener("click", () => (first ? invoke("quit") : close()));
+  if (first) await show();
 }

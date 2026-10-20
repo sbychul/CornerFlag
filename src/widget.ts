@@ -2,9 +2,9 @@
 import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { LogicalSize, PhysicalPosition, availableMonitors, getCurrentWindow, primaryMonitor } from "@tauri-apps/api/window";
+import { LogicalSize, PhysicalPosition, getCurrentWindow, primaryMonitor } from "@tauri-apps/api/window";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { ICON, REPO, esc, fmtDate, fmtTime, load, newerRelease, read, write } from "./common.ts";
+import { ICON, REPO, esc, fmtDate, fmtTime, load, newerRelease, read, savedPos, write } from "./common.ts";
 import { BASE, backoff, nextDelay, pick, refine, searchUrl, watching } from "./espn.ts";
 import type { Backoff, Failure, Match, Side } from "./espn.ts";
 
@@ -180,11 +180,8 @@ async function layout() {
 
 /** Restore the saved spot, or top-right of the primary work area when it is off every monitor (Q6). */
 async function place() {
-  const p = read<{ x: number; y: number }>("cf.pos");
-  const on = (await availableMonitors()).some(
-    ({ position: o, size }) => p && p.x >= o.x && p.y >= o.y && p.x < o.x + size.width - 20 && p.y < o.y + size.height - 20,
-  );
-  if (p && on) return win.setPosition(new PhysicalPosition(p.x, p.y));
+  const p = await savedPos("cf.pos");
+  if (p) return win.setPosition(p);
   const m = await primaryMonitor();
   if (!m) return;
   const { position: o, size } = m.workArea;

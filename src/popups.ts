@@ -2,19 +2,12 @@
 import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
-import { LogicalSize, getCurrentWindow } from "@tauri-apps/api/window";
-import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import wordmark from "../src-tauri/icons/logo-wordmark.svg?raw";
-import { ICON, REPO, esc, fmtDate, fmtTime, load, newerRelease, read } from "./common.ts";
+import { ICON, REPO, esc, fmtDate, fmtTime, load, newerRelease, popup, read } from "./common.ts";
 
 const win = getCurrentWindow();
-
-async function open(label: string) {
-  const w = await WebviewWindow.getByLabel(label);
-  await w?.show();
-  await w?.setFocus();
-}
 
 export async function menu() {
   document.body.innerHTML = `<div class="menu surface">
@@ -39,7 +32,7 @@ export async function menu() {
     await win.hide();
     if (a === "quit") invoke("quit");
     else if (a === "refresh") emit("refresh");
-    else open(a);
+    else emit("open", a); // the window places and shows itself, see popup()
   });
   await win.onFocusChanged(({ payload }) => (payload ? paint() : win.hide()));
 }
@@ -73,7 +66,6 @@ export async function about() {
       <dt>Data</dt><dd>ESPN (unofficial API)</dd><dt>License</dt><dd>MIT</dd></dl>
     <button class="link">View on GitHub ${ICON.arrow}</button>
   </div>`;
-  document.querySelector(".close")!.addEventListener("click", () => win.hide());
   document.querySelector(".link")!.addEventListener("click", () => openUrl(REPO));
   const fill = () => {
     const last = read<number>("cf.lastOk");
@@ -81,7 +73,8 @@ export async function about() {
     document.querySelector(".v-last")!.textContent = last ? `${fmtDate(new Date(last))} ${fmtTime(new Date(last))}` : "—";
   };
   await document.fonts.ready;
-  await win.setSize(new LogicalSize(360, document.querySelector<HTMLElement>(".about")!.offsetHeight));
+  const { close } = popup(360, document.querySelector<HTMLElement>(".about")!.offsetHeight);
+  document.querySelector(".close")!.addEventListener("click", close);
   // Re-check at most hourly: the About page lives as long as the app (GitHub allows 60 unauthenticated calls/h).
   let checked = 0;
   const refreshAll = () => {

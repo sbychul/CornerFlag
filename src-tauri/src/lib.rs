@@ -2,17 +2,23 @@
 mod desktop;
 
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager, PhysicalPosition};
+use tauri::{AppHandle, LogicalSize, Manager, PhysicalPosition, PhysicalSize};
+
+/// Menu size in CSS px, as in tauri.conf.json and styles.css.
+const MENU: LogicalSize<f64> = LogicalSize { width: 196.0, height: 153.0 };
 
 /// Show the dropdown menu window at the cursor, flipped so it stays inside the work area.
 #[tauri::command]
 fn show_menu(app: AppHandle) -> tauri::Result<()> {
     let menu = app.get_webview_window("menu").expect("menu window");
     let p = app.cursor_position()?;
-    let size = menu.outer_size()?;
+    let monitor = app.monitor_from_point(p.x, p.y)?;
+    // Sized at the cursor's monitor scale, not the window's: a hidden window that Windows moves across monitors
+    // (monitor off and on) keeps its old pixel size while WebView2 follows the new DPI, which clipped the menu.
+    let size: PhysicalSize<u32> = MENU.to_physical(monitor.as_ref().map_or(1.0, |m| m.scale_factor()));
     let (w, h) = (size.width as i32, size.height as i32);
     let (mut x, mut y) = (p.x as i32, p.y as i32);
-    if let Some(m) = app.monitor_from_point(p.x, p.y)? {
+    if let Some(m) = monitor {
         let area = m.work_area();
         if x + w > area.position.x + area.size.width as i32 {
             x -= w;
@@ -22,6 +28,7 @@ fn show_menu(app: AppHandle) -> tauri::Result<()> {
         }
     }
     menu.set_position(PhysicalPosition::new(x, y))?;
+    menu.set_size(size)?;
     menu.show()?;
     menu.set_focus()
 }

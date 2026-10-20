@@ -1,6 +1,7 @@
 // Shared by all windows: settings in localStorage (one WebView2 profile, so every window sees the same values),
 // formatting and the inline icons from the Figma design.
-import { emit } from "@tauri-apps/api/event";
+import { emit, listen } from "@tauri-apps/api/event";
+import { PhysicalPosition, PhysicalSize, availableMonitors, currentMonitor, getCurrentWindow } from "@tauri-apps/api/window";
 
 export type Settings = {
   league: string; // ESPN slug, e.g. eng.1
@@ -26,6 +27,45 @@ export function read<T>(key: string): T | undefined {
 export const write = (key: string, value: unknown) => localStorage.setItem(key, JSON.stringify(value));
 
 export const load = (): Settings => ({ ...DEFAULTS, ...read<Partial<Settings>>("cf.settings") });
+
+/** The window spot saved under `key`, when it is still on a monitor (monitor setups change, Q6). */
+export async function savedPos(key: string) {
+  const p = read<{ x: number; y: number }>(key);
+  const on = (await availableMonitors()).some(
+    ({ position: o, size }) => p && p.x >= o.x && p.y >= o.y && p.x < o.x + size.width - 20 && p.y < o.y + size.height - 20,
+  );
+  return p && on ? new PhysicalPosition(p.x, p.y) : undefined;
+}
+
+/** Settings and About, w×h CSS px: shown on `emit("open", label)` where last closed (centered the first time).
+ *  While hidden, Windows moves the window around when a monitor goes off and on, so position and size are
+ *  re-applied on every show, and only a close saves the spot. The size uses the scale of the monitor the window is
+ *  on, not the window's own: a moved hidden window keeps its old pixel size while WebView2 follows the new DPI. */
+export function popup(w: number, h: number) {
+  const win = getCurrentWindow();
+  const key = `cf.pos.${win.label}`;
+  const fit = async () => {
+    const sf = (await currentMonitor())?.scaleFactor ?? 1;
+    await win.setSize(new PhysicalSize(Math.round(w * sf), Math.round(h * sf)));
+  };
+  const show = async () => {
+    if (!(await win.isVisible())) {
+      await fit();
+      const p = await savedPos(key);
+      await (p ? win.setPosition(p) : win.center());
+      await fit();
+      await win.show();
+    }
+    await win.setFocus();
+  };
+  const close = async () => {
+    const p = await win.outerPosition();
+    write(key, { x: p.x, y: p.y });
+    await win.hide();
+  };
+  listen<string>("open", ({ payload }) => payload === win.label && show());
+  return { show, close };
+}
 
 /** Save and tell the other windows; settings apply immediately. */
 export function save(patch: Partial<Settings>) {

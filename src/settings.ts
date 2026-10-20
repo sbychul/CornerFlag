@@ -46,6 +46,9 @@ export async function settings() {
   let picked = load().teamId;
   let pickedName = load().team;
   const s = load();
+  // Re-register on every launch: running the installer by hand uninstalls the old version first, which deletes the
+  // Run value while this setting still says on. Also follows the exe when the zip build is moved.
+  if (s.autostart) invoke("set_autostart", { on: true });
 
   document.body.innerHTML = `<div class="window surface settings">
     <div class="title" data-tauri-drag-region><span data-tauri-drag-region>${first ? "Pick your team" : "Settings"}</span><button class="close" title="Close">${ICON.close}</button></div>

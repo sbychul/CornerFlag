@@ -85,7 +85,7 @@ export async function settings() {
     <div class="grid"></div>
     <hr><div class="label">Widget</div>
     <div class="rows">
-      ${row("Start with Windows", `<input type="checkbox" class="toggle autostart"${s.autostart ? " checked" : ""}>`)}
+      ${row(navigator.userAgent.includes("Mac") ? "Open at login" : "Start with Windows", `<input type="checkbox" class="toggle autostart"${s.autostart ? " checked" : ""}>`)}
       ${
         first
           ? "" // the rest only makes sense once the widget is on screen

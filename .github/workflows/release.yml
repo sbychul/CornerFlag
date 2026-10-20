@@ -1,5 +1,5 @@
 # Push a tag like v1.0.0 (must match src-tauri/tauri.conf.json "version") to build a draft release
-# with the NSIS installer and a portable zip. Review the draft on GitHub, then publish it.
+# with the NSIS installer, a portable zip and a macOS dmg (Apple silicon). Review the draft on GitHub, then publish it.
 name: Release
 
 on:
@@ -12,6 +12,8 @@ permissions:
 jobs:
   release:
     runs-on: windows-latest
+    outputs:
+      releaseId: ${{ steps.tauri.outputs.releaseId }}
     steps:
       - uses: actions/checkout@v5
 
@@ -39,7 +41,9 @@ jobs:
           releaseName: CornerFlag ${{ github.ref_name }}
           releaseBody: |
             Download `CornerFlag_*_x64-setup.exe` (installer) or `CornerFlag-${{ github.ref_name }}-portable.zip`.
+            Mac (Apple silicon): `CornerFlag_*_aarch64.dmg`.
             The app is not code-signed: if SmartScreen warns, click **More info** → **Run anyway**.
+            On a Mac, open it once, then **System Settings** → **Privacy & Security** → **Open Anyway**.
           releaseDraft: true
 
       # Tauri bundles only the installer. The release exe runs on its own (WebView2 comes with Windows 11).
@@ -56,3 +60,35 @@ jobs:
           gh api --method POST -H "Content-Type: application/zip" `
             "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.tauri.outputs.releaseId }}/assets?name=$zip" `
             --input $zip
+
+  # Runs after the Windows job so it uploads into the draft that job created.
+  macos:
+    needs: release
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      # Ad-hoc signed (signingIdentity "-" in tauri.conf.json), not notarized.
+      - run: npm run tauri build -- --bundles dmg
+
+      - name: Upload dmg
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dmg=$(ls src-tauri/target/release/bundle/dmg/*.dmg)
+          gh api --method POST -H "Content-Type: application/x-apple-diskimage" \
+            "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ needs.release.outputs.releaseId }}/assets?name=$(basename "$dmg")" \
+            --input "$dmg"

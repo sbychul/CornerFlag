@@ -37,6 +37,37 @@ fn show_menu(app: AppHandle) -> tauri::Result<()> {
 fn set_autostart(on: bool) {
     #[cfg(windows)]
     desktop::autostart(on);
+    #[cfg(target_os = "macos")]
+    launch_agent(on);
+}
+
+/// Open at login via a per-user LaunchAgent.
+#[cfg(target_os = "macos")]
+fn launch_agent(on: bool) {
+    let Some(home) = std::env::var_os("HOME") else { return };
+    let dir = std::path::Path::new(&home).join("Library/LaunchAgents");
+    let plist = dir.join("io.github.sbychul.cornerflag.plist");
+    if !on {
+        let _ = std::fs::remove_file(plist);
+        return;
+    }
+    // ponytail: exe path is not XML-escaped, fine for /Applications/CornerFlag.app
+    let exe = std::env::current_exe().unwrap_or_default();
+    let _ = std::fs::create_dir_all(&dir);
+    let _ = std::fs::write(
+        plist,
+        format!(
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>Label</key><string>io.github.sbychul.cornerflag</string>
+<key>ProgramArguments</key><array><string>{}</string></array>
+<key>RunAtLoad</key><true/>
+</dict></plist>
+"#,
+            exe.display()
+        ),
+    );
 }
 
 #[tauri::command]
@@ -59,13 +90,20 @@ pub fn run() {
             // region needed for the cut made Windows draw the classic caption.
             #[cfg(windows)]
             desktop::pin(app.get_webview_window("main").expect("main window").hwnd()?.0 as _);
+            // Menu bar app: no Dock icon, no Cmd+Tab entry.
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+            // Menu bar icons open on left click.
+            let button = if cfg!(target_os = "macos") { MouseButton::Left } else { MouseButton::Right };
             TrayIconBuilder::new()
                 // The logo itself (white mark, made for the dark taskbar), not the exe's embedded icon resource.
+                // On macOS a template image: only its alpha is used, tinted to match the menu bar.
                 .icon(tauri::include_image!("icons/32x32.png"))
+                .icon_as_template(true)
                 .tooltip("CornerFlag")
                 .show_menu_on_left_click(false)
-                .on_tray_icon_event(|tray, event| {
-                    if let TrayIconEvent::Click { button: MouseButton::Right, button_state: MouseButtonState::Up, .. } = event {
+                .on_tray_icon_event(move |tray, event| {
+                    if matches!(event, TrayIconEvent::Click { button: b, button_state: MouseButtonState::Up, .. } if b == button) {
                         let _ = show_menu(tray.app_handle().clone());
                     }
                 })

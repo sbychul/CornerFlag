@@ -10,7 +10,7 @@ A little Flag for your Corner of the pitch.
 
 ---
 
-A minimal football widget for the Windows desktop. Pick one club and it shows the club's live match, next match or latest result on a single card that stays on your desktop.
+A minimal football widget for the Windows and macOS desktop. Pick one club and it shows the club's live match, next match or latest result on a single card that stays on your desktop.
 
 - Clubs from the top five European leagues (Premier League, LALIGA, Bundesliga, Serie A, Ligue 1)
 - Every official competition: league, domestic cups, super cups, UEFA. Friendlies are skipped.
@@ -24,11 +24,13 @@ Download from [Releases](https://github.com/sbychul/CornerFlag/releases/latest):
 - `CornerFlag_x.y.z_x64-setup.exe`: installer
 - `CornerFlag-vx.y.z-portable.zip`: unzip and run `CornerFlag.exe`
 
+- `CornerFlag_x.y.z_aarch64.dmg`: macOS (Apple silicon), drag to Applications
+
 Windows 10/11 with the WebView2 runtime (built into Windows 11).
 
-### "Windows protected your PC"
+### "Windows protected your PC" / "Apple could not verify"
 
-The app is not code-signed, so SmartScreen may warn on first run. Click **More info**, then **Run anyway**.
+The app is not code-signed. On Windows, SmartScreen may warn on first run: click **More info**, then **Run anyway**. On macOS, open it once, then go to **System Settings** → **Privacy & Security** and click **Open Anyway**.
 
 ## Use
 
@@ -37,7 +39,7 @@ The app is not code-signed, so SmartScreen may warn on first run. Click **More i
 | Click the card                        | Google search for the match                      |
 | Drag the card                         | Move the widget (unless **Lock position** is on) |
 | Hover the card                        | Shows ↻ (refresh) and _More details_             |
-| Right-click the card or the tray icon | Menu: Settings, Refresh now, About, Quit         |
+| Right-click the card or the tray icon | Menu: Settings, Refresh now, About, Quit (macOS: click the menu bar icon) |
 
 **Settings** (applied immediately): your team, start with Windows, size, opacity, lock position, 12/24-hour time.
 

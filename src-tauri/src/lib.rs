@@ -4,7 +4,9 @@ mod desktop;
 mod macos;
 
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, LogicalSize, Manager, PhysicalPosition, PhysicalSize};
+use tauri::{AppHandle, LogicalSize, Manager};
+#[cfg(not(target_os = "macos"))]
+use tauri::{PhysicalPosition, PhysicalSize};
 
 /// Menu size in CSS px, as in tauri.conf.json and styles.css.
 const MENU: LogicalSize<f64> = LogicalSize { width: 196.0, height: 153.0 };
@@ -14,31 +16,48 @@ const MENU: LogicalSize<f64> = LogicalSize { width: 196.0, height: 153.0 };
 fn show_menu(app: AppHandle) -> tauri::Result<()> {
     let menu = app.get_webview_window("menu").expect("menu window");
     let p = app.cursor_position()?;
-    // macOS: cursor_position() is physical, monitor_from_point() takes points (tao). Unconverted, a Retina cursor
-    // fell outside every display and the menu was sized at scale 1, half size (issue #1).
+    // macOS has one point space for all displays, but cursor_position() is points × the primary display's scale,
+    // work_area() is points × that monitor's own scale, and a physical size or position is divided by the menu
+    // window's current scale. With a Retina primary and a 1x external display these differ and the menu came out
+    // half size (issues #1, #2), so work in points throughout.
     #[cfg(target_os = "macos")]
-    let monitor = {
+    {
         let sf = app.primary_monitor()?.map_or(1.0, |m| m.scale_factor());
-        app.monitor_from_point(p.x / sf, p.y / sf)?
-    };
-    #[cfg(not(target_os = "macos"))]
-    let monitor = app.monitor_from_point(p.x, p.y)?;
-    // Sized at the cursor's monitor scale, not the window's: a hidden window that Windows moves across monitors
-    // (monitor off and on) keeps its old pixel size while WebView2 follows the new DPI, which clipped the menu.
-    let size: PhysicalSize<u32> = MENU.to_physical(monitor.as_ref().map_or(1.0, |m| m.scale_factor()));
-    let (w, h) = (size.width as i32, size.height as i32);
-    let (mut x, mut y) = (p.x as i32, p.y as i32);
-    if let Some(m) = monitor {
-        let area = m.work_area();
-        if x + w > area.position.x + area.size.width as i32 {
-            x -= w;
+        let (mut x, mut y) = (p.x / sf, p.y / sf);
+        if let Some(m) = app.monitor_from_point(x, y)? {
+            let area = m.work_area();
+            let o = area.position.to_logical::<f64>(m.scale_factor());
+            let s = area.size.to_logical::<f64>(m.scale_factor());
+            if x + MENU.width > o.x + s.width {
+                x -= MENU.width;
+            }
+            if y + MENU.height > o.y + s.height {
+                y -= MENU.height;
+            }
         }
-        if y + h > area.position.y + area.size.height as i32 {
-            y -= h;
-        }
+        menu.set_size(MENU)?; // before moving: setContentSize keeps the bottom-left corner, not the top-left
+        menu.set_position(tauri::LogicalPosition::new(x, y))?;
     }
-    menu.set_position(PhysicalPosition::new(x, y))?;
-    menu.set_size(size)?;
+    #[cfg(not(target_os = "macos"))]
+    {
+        let monitor = app.monitor_from_point(p.x, p.y)?;
+        // Sized at the cursor's monitor scale, not the window's: a hidden window that Windows moves across monitors
+        // (monitor off and on) keeps its old pixel size while WebView2 follows the new DPI, which clipped the menu.
+        let size: PhysicalSize<u32> = MENU.to_physical(monitor.as_ref().map_or(1.0, |m| m.scale_factor()));
+        let (w, h) = (size.width as i32, size.height as i32);
+        let (mut x, mut y) = (p.x as i32, p.y as i32);
+        if let Some(m) = monitor {
+            let area = m.work_area();
+            if x + w > area.position.x + area.size.width as i32 {
+                x -= w;
+            }
+            if y + h > area.position.y + area.size.height as i32 {
+                y -= h;
+            }
+        }
+        menu.set_position(PhysicalPosition::new(x, y))?;
+        menu.set_size(size)?;
+    }
     menu.show()?;
     menu.set_focus()
 }

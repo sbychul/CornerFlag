@@ -12,7 +12,7 @@ A little Flag for your Corner of the pitch.
 
 A minimal football widget for the Windows and macOS desktop. Pick one club and it shows the club's live match, next match or latest result on a single card that stays on your desktop.
 
-- Clubs from the European tier-1 leagues (Premier League, LALIGA, Bundesliga, Serie A, Ligue 1, etc.), MLS, and Saudi Pro League
+- Clubs from 17 leagues: the European top 5 (Premier League, LALIGA, Bundesliga, Serie A, Ligue 1), 10 more in Europe (Eredivisie, Liga Portugal, Scottish Premiership, Belgian Pro League, Süper Lig, Austria Bundesliga, Super League Greece, Danish Superliga, Allsvenskan, Eliteserien), Saudi Pro League and MLS
 - Every official competition: league, domestic cups, super cups, UEFA. Friendlies are skipped.
 - Live score every 10 seconds, with the latest goal scorer
 - Click the card for a Google search on the match. That's where the details live.
@@ -23,10 +23,11 @@ Download from [Releases](https://github.com/sbychul/CornerFlag/releases/latest):
 
 - `CornerFlag_x.y.z_x64-setup.exe`: installer
 - `CornerFlag-vx.y.z-portable.zip`: unzip and run `CornerFlag.exe`
-
 - `CornerFlag_x.y.z_aarch64.dmg`: macOS (Apple silicon), drag to Applications
 
-Windows 10/11 with the WebView2 runtime (built into Windows 11).
+Windows 10/11 with the WebView2 runtime (built into Windows 11), or a Mac with Apple silicon.
+
+On macOS, CornerFlag lives in the menu bar with no Dock icon. The card stays on the desktop through Show Desktop and Mission Control, on every Space.
 
 ### "Windows protected your PC" / "Apple could not verify"
 
@@ -39,9 +40,10 @@ The app is not code-signed. On Windows, SmartScreen may warn on first run: click
 | Click the card                        | Google search for the match                      |
 | Drag the card                         | Move the widget (unless **Lock position** is on) |
 | Hover the card                        | Shows ↻ (refresh) and _More details_             |
+| Hover ⚠ (shown when updates keep failing) | Why: last update time, rate-limit retry time, or update may be required |
 | Right-click the card or the tray icon | Menu: Settings, Refresh now, About, Quit (macOS: click the menu bar icon) |
 
-**Settings** (applied immediately): your team, start with Windows, size, opacity, lock position, 12/24-hour time.
+**Settings** (applied immediately): your league and team, start with Windows (macOS: open at login), size, opacity, lock position, 12/24-hour time.
 
 The card shows, in this order: a live match → the next match if it starts within 24 hours → the last result for 48 hours after kickoff → the next match.
 
@@ -51,16 +53,17 @@ Match data comes from ESPN's public but **unofficial** site API. It can change o
 
 ## Build from source
 
-Requires Node.js 24, Rust (stable, MSVC) and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for Windows.
+Requires Node.js 24, Rust (stable; MSVC on Windows) and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your OS.
 
 ```bash
 npm install
 npm run tauri dev     # run with hot reload
 npm test              # match-selection, refresh-timing and error-backoff checks
-npm run tauri build   # NSIS installer in src-tauri/target/release/bundle/nsis
+npm run tauri build   # Windows: NSIS installer in src-tauri/target/release/bundle/nsis
+npm run tauri build -- --bundles dmg   # macOS: dmg in src-tauri/target/release/bundle/dmg
 ```
 
-Releases are built by GitHub Actions when a `v*` tag is pushed (`.github/workflows/release.yml`). The tag must match `version` in `src-tauri/tauri.conf.json`.
+Releases (Windows installer, portable zip and macOS dmg) are built by GitHub Actions when a `v*` tag is pushed (`.github/workflows/release.yml`). The tag must match `version` in `src-tauri/tauri.conf.json`.
 
 ## Disclaimer
 

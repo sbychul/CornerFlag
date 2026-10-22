@@ -1,6 +1,6 @@
 [package]
 name = "cornerflag"
-version = "1.1.0"
+version = "1.1.1"
 description = "Minimal football widget for the Windows desktop"
 authors = ["sbychul"]
 edition = "2024"

@@ -67,10 +67,12 @@ export function popup(w: number, h: number) {
   return { show, close };
 }
 
-/** Save and tell the other windows; settings apply immediately. */
+/** Save and tell the other windows; settings apply immediately. The event carries the settings: on macOS each
+ *  window's WKWebView is its own process and sees the localStorage write later (issue #1). */
 export function save(patch: Partial<Settings>) {
-  write("cf.settings", { ...load(), ...patch });
-  return emit("settings");
+  const next = { ...load(), ...patch };
+  write("cf.settings", next);
+  return emit("settings", next);
 }
 
 const ESC: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };

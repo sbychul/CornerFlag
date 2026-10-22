@@ -6,6 +6,7 @@ import { LogicalSize, PhysicalPosition, getCurrentWindow, primaryMonitor } from 
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { ICON, REPO, esc, fmtDate, fmtTime, load, newerRelease, read, savedPos, write } from "./common.ts";
 import { BASE, backoff, nextDelay, pick, refine, searchUrl, watching } from "./espn.ts";
+import type { Settings } from "./common.ts";
 import type { Backoff, Failure, Match, Side } from "./espn.ts";
 
 const win = getCurrentWindow();
@@ -136,7 +137,7 @@ function warning() {
       : failure.kind === "limited"
         ? `Rate limited. Next try at ${fmtTime(new Date(blockedUntil), s.h24)}`
         : `Last updated ${last ? `${fmtDate(new Date(last))} ${fmtTime(new Date(last), s.h24)}` : "never"}`;
-  return `<span class="warn" title="${esc(tip)}">${ICON.warn}</span>`;
+  return `<span class="warn" aria-label="${esc(tip)}">${ICON.warn}</span>`;
 }
 
 // Always visible, unlike ↻: otherwise a new release only shows up in About.
@@ -221,9 +222,9 @@ export async function widget() {
 
   await win.onMoved(({ payload }) => write("cf.pos", { x: payload.x, y: payload.y }));
   await listen("refresh", refresh);
-  await listen("settings", async () => {
+  await listen<Settings>("settings", async ({ payload }) => {
     const prev = s;
-    s = load();
+    s = payload;
     if (s.width !== prev.width) await layout();
     if (s.teamId === prev.teamId) return render();
     shown = undefined;

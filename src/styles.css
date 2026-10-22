@@ -93,6 +93,7 @@ svg {
 }
 
 .head {
+  position: relative;
   height: 16px;
   flex-shrink: 0;
   display: flex;
@@ -114,6 +115,25 @@ svg {
 .warn {
   display: flex;
   color: #ffd60a;
+}
+
+/* Drawn in the page, not `title`: macOS shows no native tooltips while the app is inactive, and the widget's always is.
+   Anchored to the head's right edge so a long reason next to the Update badge stays inside the card. */
+.warn:hover::after {
+  content: attr(aria-label);
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 2;
+  width: max-content;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: rgb(24 24 27 / 0.95);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+  font-size: 11px;
+  color: var(--text);
 }
 
 .refresh {

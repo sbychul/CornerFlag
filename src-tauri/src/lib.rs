@@ -14,6 +14,14 @@ const MENU: LogicalSize<f64> = LogicalSize { width: 196.0, height: 153.0 };
 fn show_menu(app: AppHandle) -> tauri::Result<()> {
     let menu = app.get_webview_window("menu").expect("menu window");
     let p = app.cursor_position()?;
+    // macOS: cursor_position() is physical, monitor_from_point() takes points (tao). Unconverted, a Retina cursor
+    // fell outside every display and the menu was sized at scale 1, half size (issue #1).
+    #[cfg(target_os = "macos")]
+    let monitor = {
+        let sf = app.primary_monitor()?.map_or(1.0, |m| m.scale_factor());
+        app.monitor_from_point(p.x / sf, p.y / sf)?
+    };
+    #[cfg(not(target_os = "macos"))]
     let monitor = app.monitor_from_point(p.x, p.y)?;
     // Sized at the cursor's monitor scale, not the window's: a hidden window that Windows moves across monitors
     // (monitor off and on) keeps its old pixel size while WebView2 follows the new DPI, which clipped the menu.

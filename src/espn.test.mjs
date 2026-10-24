@@ -29,13 +29,18 @@ assert.equal(pick([ev("pp", 3, "post", { name: "STATUS_POSTPONED" }), ev("n", 10
 assert.equal(pick([ev("pp", -1, "post", { name: "STATUS_POSTPONED" }), ev("n", 100, "pre")], now).id, "n");
 
 // parsing
-const live = parse(ev("g", 0, "in", { home: 2, away: 1, details: [
+const details = [
   { scoringPlay: true, clock: { displayValue: "19'" }, athletesInvolved: [{ shortName: "P. Foden" }] },
   { scoringPlay: true, penaltyKick: true, clock: { displayValue: "67'" }, athletesInvolved: [{ shortName: "E. Haaland" }] },
   { scoringPlay: false, clock: { displayValue: "70'" }, athletesInvolved: [{ shortName: "X. Card" }] },
-] }));
+];
+const live = parse(ev("g", 0, "in", { home: 2, away: 0, details }));
 assert.equal(live.goal, "Goal! 67' Haaland (P)");
-assert.deepEqual([live.home.score, live.away.score, live.home.color, live.away.color], [2, 1, "#99c5ea", undefined]);
+assert.deepEqual([live.home.score, live.away.score, live.home.color, live.away.color], [2, 0, "#99c5ea", undefined]);
+// a goal listed before the score counts it waits for the score; one counted before it is listed shows no line
+assert.equal(parse(ev("g", 0, "in", { home: 1, details })).goal, "Goal! 19' Foden");
+assert.equal(parse(ev("g", 0, "in", { details })).goal, undefined);
+assert.equal(parse(ev("g", 0, "in", { home: 2, away: 1, details })).goal, undefined);
 assert.throws(() => parse({ id: "x" }));
 assert.equal(searchUrl(live), "https://www.google.com/search?q=" + encodeURIComponent(`Premier League Home vs Away ${at(0).slice(0, 10)}`));
 

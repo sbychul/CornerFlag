@@ -34,8 +34,10 @@ function side(c: any): Side {
   };
 }
 
-function goalLine(details: any[] = []): string | undefined {
-  const d = details.filter((d) => d.scoringPlay && !d.shootout).at(-1);
+/** The goal that made the score `total`. ESPN can list a goal a poll before its score counts it; a line ahead of the
+ *  score reads as the widget lagging, so the line waits and comes in with the score's roll. */
+function goalLine(details: any[] = [], total: number): string | undefined {
+  const d = details.filter((d) => d.scoringPlay && !d.shootout)[total - 1];
   if (!d) return;
   const who = (d.athletesInvolved?.[0]?.shortName ?? "").replace(/^(\S+\.\s+)+/, "");
   const tag = d.ownGoal ? " (OG)" : d.penaltyKick ? " (P)" : "";
@@ -47,6 +49,7 @@ export function parse(e: any, league: string = e.league.abbreviation): Match {
   const c = e.competitions[0];
   const type = (c.status ?? e.status).type;
   const get = (h: string) => side(c.competitors.find((x: any) => x.homeAway === h));
+  const [home, away] = [get("home"), get("away")];
   const m: Match = {
     id: e.id,
     date: e.date,
@@ -54,9 +57,9 @@ export function parse(e: any, league: string = e.league.abbreviation): Match {
     state: type.state,
     detail: type.shortDetail,
     postponed: type.name === "STATUS_POSTPONED",
-    home: get("home"),
-    away: get("away"),
-    goal: type.state === "in" ? goalLine(c.details) : undefined,
+    home,
+    away,
+    goal: type.state === "in" ? goalLine(c.details, (home.score ?? 0) + (away.score ?? 0)) : undefined,
   };
   if (!m.id || !m.date || !["pre", "in", "post"].includes(m.state)) throw new Error("bad event");
   return m;

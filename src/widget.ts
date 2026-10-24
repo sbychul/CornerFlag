@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { LogicalSize, PhysicalPosition, getCurrentWindow, primaryMonitor } from "@tauri-apps/api/window";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { ICON, REPO, esc, fmtDate, fmtTime, load, newerRelease, read, savedPos, write } from "./common.ts";
+import { ICON, REPO, esc, fmtDate, fmtTime, keepOnScreen, load, newerRelease, read, spot, write } from "./common.ts";
 import { BASE, backoff, nextDelay, pick, refine, searchUrl, watching } from "./espn.ts";
 import type { Settings } from "./common.ts";
 import type { Backoff, Failure, Match, Side } from "./espn.ts";
@@ -53,6 +53,7 @@ async function tick() {
   clearTimeout(timer);
   const team = s.teamId;
   if (!team) return;
+  checkUpdate(3_600_000);
   busy = true;
   await sleep(lastTick + 5000 - Date.now());
   lastTick = Date.now();
@@ -80,7 +81,19 @@ async function tick() {
   timer = setTimeout(tick, team === s.teamId ? period : 0);
 }
 
+/** Same check as About, with every refresh: at most hourly from the timer and once a minute from ↻, as GitHub allows
+ *  60 unauthenticated calls/h. A failed check keeps the last answer. */
+let checkedAt = 0;
+async function checkUpdate(every: number) {
+  if (Date.now() - checkedAt < every) return;
+  checkedAt = Date.now();
+  const latest = await newerRelease(await getVersion()).catch(() => update);
+  if (latest !== update) (update = latest), render();
+}
+
 function refresh() {
+  keepOnScreen(win); // Refresh now in the menu also brings back a card stranded off screen
+  checkUpdate(60_000);
   const now = Date.now();
   if (busy || now < Math.max(cooldownUntil, blockedUntil)) return;
   cooldownUntil = now + 5000;
@@ -179,10 +192,10 @@ async function layout() {
   await win.setSize(new LogicalSize(s.width, Math.round((s.width * 146) / 320)));
 }
 
-/** Restore the saved spot, or top-right of the primary work area when it is off every monitor (Q6). */
+/** Restore the saved spot, kept on screen, or top-right of the primary work area the first time. */
 async function place() {
-  const p = await savedPos("cf.pos");
-  if (p) return win.setPosition(p);
+  const p = read<{ x: number; y: number }>("cf.pos");
+  if (p) return keepOnScreen(win, p);
   const m = await primaryMonitor();
   if (!m) return;
   const { position: o, size } = m.workArea;
@@ -220,7 +233,15 @@ export async function widget() {
   });
   card.addEventListener("contextmenu", () => invoke("show_menu"));
 
-  await win.onMoved(({ payload }) => write("cf.pos", { x: payload.x, y: payload.y }));
+  // Once a drag (or a monitor change) settles: back on screen if it went off, then remember the spot.
+  let settle: number | undefined;
+  await win.onMoved(() => {
+    clearTimeout(settle);
+    settle = setTimeout(async () => {
+      await keepOnScreen(win);
+      write("cf.pos", await spot(win));
+    }, 500);
+  });
   await listen("refresh", refresh);
   await listen<Settings>("settings", async ({ payload }) => {
     const prev = s;
@@ -239,15 +260,6 @@ export async function widget() {
   addEventListener("online", () => {
     if (!busy && Date.now() - (read<number>("cf.lastOk") ?? 0) > period) tick();
   });
-
-  // Same check as About, hourly (GitHub allows 60 unauthenticated calls/h); a failed check keeps the last answer.
-  const version = await getVersion();
-  const checkUpdate = async () => {
-    const latest = await newerRelease(version).catch(() => update);
-    if (latest !== update) (update = latest), render();
-  };
-  checkUpdate();
-  setInterval(checkUpdate, 3_600_000);
 
   if (s.teamId) start(); // first run: the settings window shows itself and sends "settings" once a team is picked
 }

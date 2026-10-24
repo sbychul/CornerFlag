@@ -1,7 +1,7 @@
 // Shared by all windows: settings in localStorage (one WebView2 profile, so every window sees the same values),
 // formatting and the inline icons from the Figma design.
 import { emit, listen } from "@tauri-apps/api/event";
-import { PhysicalPosition, PhysicalSize, availableMonitors, currentMonitor, getCurrentWindow } from "@tauri-apps/api/window";
+import { LogicalPosition, PhysicalPosition, PhysicalSize, availableMonitors, currentMonitor, getCurrentWindow } from "@tauri-apps/api/window";
 
 export type Settings = {
   league: string; // ESPN slug, e.g. eng.1
@@ -28,13 +28,40 @@ export const write = (key: string, value: unknown) => localStorage.setItem(key, 
 
 export const load = (): Settings => ({ ...DEFAULTS, ...read<Partial<Settings>>("cf.settings") });
 
-/** The window spot saved under `key`, when it is still on a monitor (monitor setups change, Q6). */
-export async function savedPos(key: string) {
-  const p = read<{ x: number; y: number }>(key);
-  const on = (await availableMonitors()).some(
-    ({ position: o, size }) => p && p.x >= o.x && p.y >= o.y && p.x < o.x + size.width - 20 && p.y < o.y + size.height - 20,
-  );
-  return p && on ? new PhysicalPosition(p.x, p.y) : undefined;
+// Window spots are kept in points on macOS: it has one point space for all displays, but its physical values are
+// points × a scale that differs per display (the window's own, each monitor's own), so a spot saved on a 1x display
+// and restored from a Retina one landed off screen (issue #2). Windows stays in physical px.
+const MAC = navigator.userAgent.includes("Mac");
+const unit = (scaleFactor: number) => (MAC ? scaleFactor : 1);
+type Spot = { x: number; y: number };
+
+/** The window's top-left, to save and later pass to keepOnScreen. */
+export async function spot(win = getCurrentWindow()): Promise<Spot> {
+  const p = await win.outerPosition();
+  const u = unit(await win.scaleFactor());
+  return { x: p.x / u, y: p.y / u };
+}
+
+/** Move to `to` (or stay), kept fully inside the work area of the nearest monitor: neither OS keeps a borderless
+ *  window on screen, and monitor setups change (Q6). */
+export async function keepOnScreen(win = getCurrentWindow(), to?: Spot) {
+  const u = unit(await win.scaleFactor());
+  const { width, height } = await win.outerSize();
+  const [w, h] = [width / u, height / u];
+  const { x, y } = to ?? (await spot(win));
+  const [cx, cy] = [x + w / 2, y + h / 2];
+  const areas = (await availableMonitors()).map(({ workArea: { position: o, size }, scaleFactor }) => {
+    const k = unit(scaleFactor);
+    return { x: o.x / k, y: o.y / k, w: size.width / k, h: size.height / k };
+  });
+  // distance from the window's center, 0 on the monitor it is on
+  const off = (a: (typeof areas)[number]) => Math.hypot(Math.max(a.x - cx, 0, cx - a.x - a.w), Math.max(a.y - cy, 0, cy - a.y - a.h));
+  const a = areas.sort((p, q) => off(p) - off(q))[0];
+  if (!a) return;
+  const nx = Math.min(Math.max(x, a.x), a.x + a.w - w);
+  const ny = Math.min(Math.max(y, a.y), a.y + a.h - h);
+  if (to || nx !== x || ny !== y)
+    await win.setPosition(MAC ? new LogicalPosition(nx, ny) : new PhysicalPosition(Math.round(nx), Math.round(ny)));
 }
 
 /** Settings and About, w×h CSS px: shown on `emit("open", label)` where last closed (centered the first time).
@@ -51,16 +78,15 @@ export function popup(w: number, h: number) {
   const show = async () => {
     if (!(await win.isVisible())) {
       await fit();
-      const p = await savedPos(key);
-      await (p ? win.setPosition(p) : win.center());
+      const p = read<Spot>(key);
+      await (p ? keepOnScreen(win, p) : win.center());
       await fit();
       await win.show();
     }
     await win.setFocus();
   };
   const close = async () => {
-    const p = await win.outerPosition();
-    write(key, { x: p.x, y: p.y });
+    write(key, await spot(win));
     await win.hide();
   };
   listen<string>("open", ({ payload }) => payload === win.label && show());

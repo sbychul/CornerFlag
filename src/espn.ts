@@ -34,8 +34,10 @@ function side(c: any): Side {
   };
 }
 
-function goalLine(details: any[] = []): string | undefined {
-  const d = details.filter((d) => d.scoringPlay && !d.shootout).at(-1);
+/** The goal that made the score `total`. ESPN can list a goal a poll before its score counts it; a line ahead of the
+ *  score reads as the widget lagging, so the line waits and comes in with the score's roll. */
+function goalLine(details: any[] = [], total: number): string | undefined {
+  const d = details.filter((d) => d.scoringPlay && !d.shootout)[total - 1];
   if (!d) return;
   const who = (d.athletesInvolved?.[0]?.shortName ?? "").replace(/^(\S+\.\s+)+/, "");
   const tag = d.ownGoal ? " (OG)" : d.penaltyKick ? " (P)" : "";
@@ -47,6 +49,7 @@ export function parse(e: any, league: string = e.league.abbreviation): Match {
   const c = e.competitions[0];
   const type = (c.status ?? e.status).type;
   const get = (h: string) => side(c.competitors.find((x: any) => x.homeAway === h));
+  const [home, away] = [get("home"), get("away")];
   const m: Match = {
     id: e.id,
     date: e.date,
@@ -54,9 +57,9 @@ export function parse(e: any, league: string = e.league.abbreviation): Match {
     state: type.state,
     detail: type.shortDetail,
     postponed: type.name === "STATUS_POSTPONED",
-    home: get("home"),
-    away: get("away"),
-    goal: type.state === "in" ? goalLine(c.details) : undefined,
+    home,
+    away,
+    goal: type.state === "in" ? goalLine(c.details, (home.score ?? 0) + (away.score ?? 0)) : undefined,
   };
   if (!m.id || !m.date || !["pre", "in", "post"].includes(m.state)) throw new Error("bad event");
   return m;
@@ -88,6 +91,18 @@ export function watching(m: Match | undefined, now: number): boolean {
   if (!m) return false;
   const ko = Date.parse(m.date);
   return m.state === "in" || (m.state === "pre" && !m.postponed && now >= ko - 5 * MIN && now < ko + 2 * HOUR);
+}
+
+export type Motion = "home" | "away" | "kickoff" | "halftime" | "secondhalf";
+
+/** Design 2.7: the motion to play when an update replaces `old` with `m` on the same live match. A goal wins over a phase change. */
+export function motion(old: Match | undefined, m: Match | undefined): Motion | undefined {
+  if (!old || !m || m.state !== "in" || old.id !== m.id) return;
+  const up = (k: "home" | "away") => (m[k].score ?? 0) > (old[k].score ?? 0);
+  if (up("home")) return "home";
+  if (up("away")) return "away";
+  if (old.state === "pre") return "kickoff";
+  if (old.state === "in" && (old.detail === "HT") !== (m.detail === "HT")) return m.detail === "HT" ? "halftime" : "secondhalf";
 }
 
 /** Spec 7.1: delay until the next refresh after a successful one. */

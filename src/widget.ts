@@ -5,14 +5,15 @@ import { listen } from "@tauri-apps/api/event";
 import { LogicalSize, PhysicalPosition, getCurrentWindow, primaryMonitor } from "@tauri-apps/api/window";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { ICON, REPO, esc, fmtDate, fmtTime, keepOnScreen, load, newerRelease, read, spot, write } from "./common.ts";
-import { BASE, backoff, nextDelay, pick, refine, searchUrl, watching } from "./espn.ts";
+import { BASE, backoff, motion, nextDelay, pick, refine, searchUrl, watching } from "./espn.ts";
 import type { Settings } from "./common.ts";
-import type { Backoff, Failure, Match, Side } from "./espn.ts";
+import type { Backoff, Failure, Match, Motion, Side } from "./espn.ts";
 
 const win = getCurrentWindow();
 const card = document.createElement("div");
 let s = load();
 let shown = read<Match>("cf.match");
+let loading = !shown; // no match yet for this team: "Loading…" until the first answer, then "No upcoming matches"
 let fails = 0;
 let failure: Backoff | undefined;
 let busy = false;
@@ -64,6 +65,7 @@ async function tick() {
       if (m.state === "post") m = await full(team);
     } else m = await full(team);
     if (team === s.teamId) {
+      loading = false;
       show(m);
       fails = 0;
       failure = undefined;
@@ -106,13 +108,12 @@ function refresh() {
   tick();
 }
 
-/** New data from the network: play the goal motion once if a score went up (design 2.7). */
+/** New data from the network: play the goal or phase motion once (design 2.7). Cached data never animates. */
 function show(m: Match | undefined) {
   const old = shown;
   shown = m;
   write("cf.match", m ?? null);
-  const scored = (k: "home" | "away") => m?.state === "in" && old?.id === m.id && (m[k].score ?? 0) > (old[k].score ?? 0);
-  render(scored("home") ? "home" : scored("away") ? "away" : undefined);
+  render(motion(old, m), old);
 }
 
 const lead = (m: Match): "home" | "away" | undefined => {
@@ -127,14 +128,25 @@ const badge = (label: string, color?: string) =>
 const team = (t: Side) =>
   `<div class="team"><img src="${esc(t.logo)}" alt=""><span class="name">${esc(t.short)}</span><i class="kit" style="background:${t.color ?? "transparent"}"></i></div>`;
 
-function center(m: Match, goal?: string) {
+// Every render makes a new dot; a negative delay from the wall clock keeps its 1.4 s pulse on one beat across refreshes.
+const status = (m: Match) =>
+  m.detail === "HT"
+    ? badge("Half-Time", "#ffd60a")
+    : `<div class="clock"><i class="dot" style="--phase:-${Date.now() % 1400}ms"></i>${esc(m.detail)}</div>`;
+
+/** `prev` is the match before this update: the digit that rolls out, and the .ghost of what a phase change replaces. */
+function center(m: Match, how?: Motion, prev?: Match): string {
   if (m.state === "pre") {
     const d = new Date(m.date);
     return `<div class="date">${fmtDate(d)}</div><div class="time">${fmtTime(d, s.h24)}</div>${m.postponed ? badge("Postponed", "#ff3b30") : ""}`;
   }
-  const cell = (k: "home" | "away") => `<span class="${k}${goal === k ? " roll" : ""}">${m[k].score ?? 0}</span>`;
+  const cell = (k: "home" | "away") =>
+    how === k && prev
+      ? `<span class="${k} hit" style="--c:${m[k].color ?? "#ffffff"}"><span class="was">${prev[k].score ?? 0}</span><span class="now">${m[k].score ?? 0}</span></span>`
+      : `<span class="${k}">${m[k].score ?? 0}</span>`;
   const score = `<div class="score">${cell("home")}<span class="dash">–</span>${cell("away")}</div>`;
-  if (m.state === "in") return score + (m.detail === "HT" ? badge("Half-Time", "#ffd60a") : `<div class="clock"><i class="dot"></i>${esc(m.detail)}</div>`);
+  const ghost = prev && (how === "kickoff" ? center(prev) : how === "halftime" || how === "secondhalf" ? status(prev) : "");
+  if (m.state === "in") return score + status(m) + (ghost ? `<div class="ghost">${ghost}</div>` : "");
   const w = lead(m);
   const color = w && m[w].color;
   const pens = m.home.pen != null && m.away.pen != null;
@@ -157,7 +169,7 @@ function warning() {
 const updateBadge = () =>
   update ? `<button class="badge upd" style="--c:#ffd60a" title="Update available: v${esc(update)}">Update</button>` : "";
 
-function render(goal?: "home" | "away") {
+function render(how?: Motion, prev?: Match) {
   const m = shown;
   card.style.setProperty("--op", String(s.opacity / 100));
   const head = (league: string) =>
@@ -169,18 +181,23 @@ function render(goal?: "home" | "away") {
   if (!m) {
     card.className = "card surface empty";
     card.style.removeProperty("--tint");
-    return paint(head("") + `<div class="none">No upcoming matches</div>`);
+    const crest = `https://a.espncdn.com/i/teamlogos/soccer/500-dark/${esc(s.teamId ?? "")}.png`;
+    return paint(head("") + `<div class="none">${loading ? "Loading…" : `<img src="${crest}" alt="">No upcoming matches`}</div>`);
   }
   const w = lead(m);
   const tint = w && m[w].color;
-  card.className = `card surface ${m.state}`;
+  const goal = how === "home" || how === "away" ? how : undefined;
+  card.className = `card surface ${m.state}${how && !goal ? ` ${how}` : ""}`;
   card.style.setProperty("--tint", tint ? `linear-gradient(to ${w === "home" ? "right" : "left"}, ${tint}66, ${tint}00)` : "none");
   const more = `<span class="more">More details ${ICON.arrow}</span>`;
   const flash = goal && m[goal].color;
   paint(
-    (flash ? `<i class="flash" style="background:linear-gradient(to ${goal === "home" ? "right" : "left"}, ${flash}80, ${flash}00)"></i>` : "") +
+    (flash
+      ? `<i class="flash" style="background:linear-gradient(to ${goal === "home" ? "right" : "left"}, ${flash}80, ${flash}00)"></i>` +
+        `<i class="sweep ${goal}" style="--c:${flash}"><i class="wave"></i></i>`
+      : "") +
     head(m.league) +
-    `<div class="match">${team(m.home)}<div class="center">${center(m, goal)}</div>${team(m.away)}</div>` +
+    `<div class="match">${team(m.home)}<div class="center">${center(m, how, prev)}</div>${team(m.away)}</div>` +
     (m.state === "in"
       ? `<div class="foot"><hr><div class="events"><span class="goal${goal ? " slide" : ""}">${esc(m.goal ?? "")}</span>${more}</div></div>`
       : more),
@@ -232,6 +249,11 @@ export async function widget() {
     else if (shown) openUrl(searchUrl(shown));
   });
   card.addEventListener("contextmenu", () => invoke("show_menu"));
+  // The empty card's crest: no dark logo for some clubs (e.g. Coventry), so fall back to the default one as Settings does.
+  card.addEventListener("error", (e) => {
+    const img = e.target as HTMLImageElement;
+    if (img.src.includes("/500-dark/")) img.src = img.src.replace("/500-dark/", "/500/");
+  }, true);
 
   // Once a drag (or a monitor change) settles: back on screen if it went off, then remember the spot.
   let settle: number | undefined;
@@ -249,6 +271,7 @@ export async function widget() {
     if (s.width !== prev.width) await layout();
     if (s.teamId === prev.teamId) return render();
     shown = undefined;
+    loading = true;
     write("cf.match", null);
     fails = 0;
     failure = undefined;

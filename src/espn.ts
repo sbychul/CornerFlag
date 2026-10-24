@@ -93,6 +93,18 @@ export function watching(m: Match | undefined, now: number): boolean {
   return m.state === "in" || (m.state === "pre" && !m.postponed && now >= ko - 5 * MIN && now < ko + 2 * HOUR);
 }
 
+export type Motion = "home" | "away" | "kickoff" | "halftime" | "secondhalf";
+
+/** Design 2.7: the motion to play when an update replaces `old` with `m` on the same live match. A goal wins over a phase change. */
+export function motion(old: Match | undefined, m: Match | undefined): Motion | undefined {
+  if (!old || !m || m.state !== "in" || old.id !== m.id) return;
+  const up = (k: "home" | "away") => (m[k].score ?? 0) > (old[k].score ?? 0);
+  if (up("home")) return "home";
+  if (up("away")) return "away";
+  if (old.state === "pre") return "kickoff";
+  if (old.state === "in" && (old.detail === "HT") !== (m.detail === "HT")) return m.detail === "HT" ? "halftime" : "secondhalf";
+}
+
 /** Spec 7.1: delay until the next refresh after a successful one. */
 export function nextDelay(m: Match | undefined, now: number): number {
   if (m?.state === "in") return 10_000;

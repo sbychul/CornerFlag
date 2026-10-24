@@ -194,6 +194,7 @@ svg {
 }
 
 .center {
+  position: relative; /* for the phase-change .ghost */
   width: 104px;
   flex-shrink: 0;
   display: flex;
@@ -235,7 +236,7 @@ svg {
   height: 7px;
   border-radius: 50%;
   background: #ff3b30;
-  animation: dot 1.4s infinite;
+  animation: dot 1.4s var(--phase, 0s) infinite;
 }
 
 .dot::after {
@@ -245,7 +246,7 @@ svg {
   border-radius: 50%;
   border: 1px solid #ff3b30;
   box-sizing: border-box;
-  animation: ring 1.4s infinite;
+  animation: ring 1.4s var(--phase, 0s) infinite;
 }
 
 .date {
@@ -321,28 +322,124 @@ svg {
 .none {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   font-size: 12.5px;
   color: var(--sub);
 }
 
-/* Goal motion (design 2.7): flash 0-350 in / hold / out by 1650, score rolls up, goal line slides in at 350. */
-.flash {
+/* The picked club's crest above "No upcoming matches", sized like the match row's logos. */
+.none img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+/* Goal motion (design 2.7), timed from the update that brings the goal: flash 0-350 in / hold / out by 1650;
+   a straight wave in the scorer's colour sweeps from the scorer's edge 0-500 and leaves past the far edge;
+   at 100 the old digit rolls out and the new one rolls in in the scorer's colour, white again by 1000;
+   the goal line slides in at 550. */
+.flash,
+.sweep {
   position: absolute;
   inset: 0;
   z-index: -1;
   pointer-events: none;
+}
+
+.flash {
   animation: flash 1650ms both;
 }
 
-.roll {
+/* Drawn for home, left to right; away mirrors it. The card's clip-path keeps it inside the cut shape. */
+.sweep.away {
+  transform: scaleX(-1);
+}
+
+/* Bright front on the right, soft tail behind. It starts just off the card, so only the front is seen entering;
+   the tail stretches from 80 to 220px behind the front, which ends at 550, so all of it is past the far edge. */
+.wave {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -80px;
+  width: 80px;
+  transform-origin: right;
+  background: linear-gradient(
+    to right,
+    transparent,
+    color-mix(in srgb, var(--c) 30%, transparent) 55%,
+    color-mix(in srgb, var(--c) 70%, transparent) 88%,
+    color-mix(in srgb, var(--c) 30%, white) 96%,
+    transparent
+  );
+  filter: blur(3px);
+  mix-blend-mode: screen;
+  animation: wave 500ms cubic-bezier(0, 0, 0.58, 1) both;
+}
+
+.hit {
+  position: relative;
+}
+
+.hit .was {
+  position: absolute;
+  inset: 0;
+  animation: was 200ms 100ms ease-out both;
+}
+
+.hit .now {
   display: inline-block;
-  animation: roll 350ms ease-out;
+  animation:
+    roll 250ms 100ms ease-out both,
+    hit 900ms 100ms both;
 }
 
 .slide {
-  animation: slide 400ms 350ms ease-out both;
+  animation: slide 400ms 550ms ease-out both;
+}
+
+/* Phase motion (design 2.7): kick-off, half-time, second half. What the change replaces is a .ghost copy
+   that leaves upward; the new part rises in. */
+.ghost {
+  position: absolute;
+  top: 32px; /* the status row under the score */
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  animation: leave 200ms ease-in both;
+}
+
+/* Kick-off: date and time leave, 0–0 rises, the foot fades in while the match row lifts into its live place; then the clock. */
+.kickoff .ghost {
+  top: 0;
+  animation: leave 400ms ease-out both;
+}
+
+.kickoff .match {
+  animation: lift 400ms ease-out;
+}
+
+.kickoff .score {
+  animation: rise 400ms ease-out both;
+}
+
+.kickoff .foot {
+  animation: fade 400ms ease-out both;
+}
+
+.kickoff .center > .clock {
+  animation: rise 300ms 400ms ease-out both;
+}
+
+.halftime .center > .badge,
+.secondhalf .center > .clock {
+  animation: rise 350ms 200ms ease-out both;
 }
 
 @keyframes dot {
@@ -381,6 +478,63 @@ svg {
 @keyframes slide {
   from {
     transform: translateX(-14px);
+    opacity: 0;
+  }
+}
+
+@keyframes wave {
+  0% {
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(550px) scaleX(2.75);
+    opacity: 0.6;
+  }
+}
+
+@keyframes was {
+  to {
+    transform: translateY(-70%);
+    opacity: 0;
+  }
+}
+
+@keyframes hit {
+  0%,
+  55% {
+    color: var(--c);
+    animation-timing-function: ease-in-out;
+  }
+  100% {
+    color: var(--text);
+  }
+}
+
+@keyframes leave {
+  to {
+    transform: translateY(-6px);
+    opacity: 0;
+  }
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+}
+
+@keyframes lift {
+  from {
+    transform: translateY(14px);
+  }
+}
+
+@keyframes fade {
+  from {
     opacity: 0;
   }
 }

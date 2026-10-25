@@ -73,9 +73,18 @@ export function refine(m: Match, scoreboard: any): Match {
   return n;
 }
 
-/** Spec 5.1: live, next within 24h, last within 48h, next, nothing. */
+/** Spec 5.1: live, next within 24h, last within 48h, next, nothing. A malformed event is skipped so it can't hide
+ *  the others; only a schedule with none readable throws (spec 8). */
 export function pick(events: any[], now: number): Match | undefined {
-  const all = events.filter((e) => !FRIENDLY.test(e.league?.slug ?? "")).map((e) => parse(e));
+  const real = events.filter((e) => !FRIENDLY.test(e.league?.slug ?? ""));
+  const all = real.flatMap((e) => {
+    try {
+      return [parse(e)];
+    } catch {
+      return [];
+    }
+  });
+  if (real.length && !all.length) throw new Error("no readable event");
   const t = (m: Match) => Date.parse(m.date);
   const live = all.find((m) => m.state === "in");
   if (live) return live;

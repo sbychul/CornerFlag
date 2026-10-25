@@ -27,6 +27,10 @@ assert.equal(pick([ev("friendly", -1, "in", { slug: "club.friendly" }), ev("gamp
 // postponed: shown until the original kickoff, then skipped
 assert.equal(pick([ev("pp", 3, "post", { name: "STATUS_POSTPONED" }), ev("n", 100, "pre")], now).id, "pp");
 assert.equal(pick([ev("pp", -1, "post", { name: "STATUS_POSTPONED" }), ev("n", 100, "pre")], now).id, "n");
+// a malformed event is skipped; a schedule with nothing readable is an error
+assert.equal(pick([{ id: "bad", league: { slug: "eng.1" } }, ev("live", -1, "in")], now).id, "live");
+assert.throws(() => pick([{ id: "bad", league: { slug: "eng.1" } }], now));
+assert.equal(pick([], now), undefined);
 
 // parsing
 const details = [

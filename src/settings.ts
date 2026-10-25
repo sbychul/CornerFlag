@@ -66,6 +66,7 @@ export async function settings() {
   let league = load().league;
   let picked = load().teamId;
   let pickedName = load().team;
+  let pickedLeague = league; // the picked team's league: browsing another league before Start must not save that one
   const s = load();
   // Re-register on every launch: running the installer by hand uninstalls the old version first, which deletes the
   // Run value while this setting still says on. Also follows the exe when the zip build is moved.
@@ -135,7 +136,8 @@ export async function settings() {
     if (!b) return;
     open(false);
     value.focus();
-    if (b.dataset.slug !== league) (league = b.dataset.slug!), drawGrid();
+    league = b.dataset.slug!;
+    drawGrid(); // also for the same league: retries a failed load, a loaded one comes from the cache
   });
   addEventListener("pointerdown", (e) => !options.hidden && !$(".select").contains(e.target as Node) && open(false));
   addEventListener("blur", () => open(false));
@@ -151,6 +153,7 @@ export async function settings() {
     if (!b) return;
     picked = b.dataset.id;
     pickedName = b.dataset.name;
+    pickedLeague = league;
     grid.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
     kit(b);
     if (first) $<HTMLButtonElement>(".start").disabled = false;
@@ -174,7 +177,7 @@ export async function settings() {
     $(".start").addEventListener("click", async () => {
       await invoke("set_autostart", { on: autostart.checked });
       await win.hide();
-      await save({ league, teamId: picked, team: pickedName, autostart: autostart.checked, h24 });
+      await save({ league: pickedLeague, teamId: picked, team: pickedName, autostart: autostart.checked, h24 });
       location.reload(); // come back as the regular Settings window
     });
   } else {

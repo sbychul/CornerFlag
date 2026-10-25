@@ -14,6 +14,7 @@ const card = document.createElement("div");
 let s = load();
 let shown = read<Match>("cf.match");
 let loading = !shown; // no match yet for this team: "Loading…" until the first answer, then "No upcoming matches"
+let cached = !!shown; // `shown` came from the last session: changes since then are not news, so no motion
 let fails = 0;
 let failure: Backoff | undefined;
 let busy = false;
@@ -108,12 +109,14 @@ function refresh() {
   tick();
 }
 
-/** New data from the network: play the goal or phase motion once (design 2.7). Cached data never animates. */
+/** New data from the network: play the goal or phase motion once (design 2.7). Cached data never animates, nor
+ *  does the first update after it: a kickoff or goal missed while the app was off would play late. */
 function show(m: Match | undefined) {
   const old = shown;
   shown = m;
   write("cf.match", m ?? null);
-  render(motion(old, m), old);
+  render(cached ? undefined : motion(old, m), old);
+  cached = false;
 }
 
 const lead = (m: Match): "home" | "away" | undefined => {

@@ -27,7 +27,8 @@ let update: string | undefined; // newer release version, shown as the Update ba
 // One ↻ for the card's lifetime: re-rendering would replace the element and cut its spin short.
 const refreshButton = Object.assign(document.createElement("button"), { className: "refresh", title: "Refresh", innerHTML: ICON.refresh });
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+// Clamped: setTimeout wraps its delay to int32, so the first tick's 5000 - Date.now() became a wait of up to 24.8 days.
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, Math.max(0, ms)));
 
 // Spec 7.3: one request at a time (the loop is serial); refreshes start at least 5 s apart (tick).
 async function get(path: string) {

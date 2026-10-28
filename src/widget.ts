@@ -302,6 +302,7 @@ let laying = Promise.resolve();
  *  (Windows, mixed DPI). Placing and saving must use the same one. */
 const aboveBy = async (g: typeof geo, at: { x: number; y: number }) =>
   spotLength((g.above * ROW * g.width) / 320, (await monitorFromPoint(at.x, at.y))?.scaleFactor);
+const sizeOf = (g: typeof geo) => new LogicalSize(g.width, Math.round((g.width * (146 + g.rows * ROW)) / 320));
 
 function layout(above: number, rows: number) {
   // A failed call must not reject the chain: every later layout, and start(), would be skipped.
@@ -311,7 +312,7 @@ function layout(above: number, rows: number) {
     const at = await spot(win);
     const was = (await win.isVisible()) && { at, above: await aboveBy(geo, at) };
     document.documentElement.style.zoom = String(s.width / 320);
-    await win.setSize(new LogicalSize(s.width, Math.round((s.width * (146 + rows * ROW)) / 320))); // before moving (macOS)
+    await win.setSize(sizeOf(next)); // before moving (macOS)
     geo = next;
     if (was) await keepOnScreen(win, { x: was.at.x, y: was.at.y + was.above - (await aboveBy(geo, was.at)) });
   }).catch(() => {});
@@ -371,16 +372,29 @@ export async function widget() {
   stack.addEventListener("contextmenu", () => invoke("show_menu"));
   crestFallback(stack); // the empty card's and rows' crests, as Settings does
 
-  // Once a drag (or a monitor change) settles: back on screen if it went off, then remember the card's spot.
+  // Once a drag (or a monitor change) settles: back to its size, back on screen if it went off, then remember the
+  // card's spot. Held across monitors of different scale, Windows and the window resize each other back and forth,
+  // and its size halves or doubles each time (mixed DPI); the end of the drag can resize it again without moving it,
+  // so resizes count too. In the layout chain, so it can't race a layout.
   let settle: number | undefined;
-  await win.onMoved(() => {
+  const settled = () => {
     clearTimeout(settle);
-    settle = setTimeout(async () => {
-      await keepOnScreen(win);
-      const at = await spot(win);
-      write("cf.pos", { x: at.x, y: at.y + (await aboveBy(geo, at)) });
+    settle = setTimeout(() => {
+      laying = laying.then(async () => {
+        // Only when wrong: the resize fires onResized again.
+        const sf = await win.scaleFactor();
+        const want = sizeOf(geo);
+        const has = await win.innerSize();
+        if (geo.width && (Math.round(want.width * sf) !== has.width || Math.round(want.height * sf) !== has.height))
+          await win.setSize(want);
+        await keepOnScreen(win);
+        const at = await spot(win);
+        write("cf.pos", { x: at.x, y: at.y + (await aboveBy(geo, at)) });
+      }).catch(() => {});
     }, 500);
-  });
+  };
+  await win.onMoved(settled);
+  await win.onResized(settled);
   await listen("refresh", refresh);
   await listen<Settings>("settings", async ({ payload }) => {
     const first = !s.teams.length;

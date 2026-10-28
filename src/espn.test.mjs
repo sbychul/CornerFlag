@@ -1,6 +1,6 @@
 // Run: npm test (Node 24 strips the types from espn.ts)
 import assert from "node:assert/strict";
-import { backoff, motion, nextDelay, parse, pick, searchUrl } from "./espn.ts";
+import { backoff, due, hidden, motion, nextDelay, parse, pick, searchUrl } from "./espn.ts";
 
 const H = 3_600_000;
 const now = Date.parse("2026-10-19T12:00Z");
@@ -46,6 +46,10 @@ assert.equal(parse(ev("g", 0, "in", { home: 1, details })).goal, "Goal! 19' Fode
 assert.equal(parse(ev("g", 0, "in", { details })).goal, undefined);
 assert.equal(parse(ev("g", 0, "in", { home: 2, away: 1, details })).goal, undefined);
 assert.throws(() => parse({ id: "x" }));
+assert.equal(live.home.abbr, "HOM"); // no abbreviation: first 3 letters of the short name
+const abbr = ev("a", 0, "pre");
+[abbr.competitions[0].competitors[0].team.abbreviation, abbr.competitions[0].competitors[1].team.abbreviation] = ["", "MNC"];
+assert.deepEqual([parse(abbr).home.abbr, parse(abbr).away.abbr], ["HOM", "MNC"]); // an empty one falls back too
 assert.equal(searchUrl(live), "https://www.google.com/search?q=" + encodeURIComponent(`Premier League Home vs Away ${at(0).slice(0, 10)}`));
 
 // design 2.7 motion
@@ -70,6 +74,12 @@ assert.equal(nextDelay(m(0.05, "pre"), now), 60_000); // inside kickoff - 5 min
 assert.equal(nextDelay(m(0.5, "pre"), now), 0.5 * H - 300_000);
 assert.equal(nextDelay(m(-3, "pre"), now), H); // 2h past kickoff and still not started
 assert.equal(nextDelay(m(-1, "post"), now), H);
+
+// multi-team: who refreshes this tick, which rows hide
+assert.equal(due([{ due: now - 1 }, { due: now + 1500 }, { due: now + 2500 }, { due: 0 }], now).length, 3);
+assert.deepEqual(hidden(["a", "b", "a", undefined]), [false, false, true, false]); // row 3 plays the main team: hidden
+assert.deepEqual(hidden([undefined, undefined, "c", "c"]), [false, false, false, true]); // no match is never a duplicate
+assert.deepEqual(hidden(["a"]), [false]);
 
 // 8 errors
 assert.deepEqual(backoff({ network: true }, 1), { kind: "transient", delay: 10_000 });

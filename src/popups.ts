@@ -1,11 +1,12 @@
 // Dropdown menu (design 3.1) and About window (design 8).
 import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
-import { emit } from "@tauri-apps/api/event";
+import { emit, listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import wordmark from "../src-tauri/icons/logo-wordmark.svg?raw";
 import { ICON, REPO, esc, fmtDate, fmtTime, load, newerRelease, popup, read } from "./common.ts";
+import type { Settings } from "./common.ts";
 
 const win = getCurrentWindow();
 
@@ -64,16 +65,23 @@ export async function about() {
     <hr>
     <dl><dt>Your team</dt><dd class="v-team"></dd><dt>Last updated</dt><dd class="v-last"></dd>
       <dt>Data</dt><dd>ESPN (unofficial API)</dd><dt>License</dt><dd>MIT</dd></dl>
-    <button class="link">View on GitHub ${ICON.arrow}</button>
+    <div class="links"><button class="link" data-url="${REPO}">View on GitHub ${ICON.arrow}</button>
+      <button class="link" data-url="${REPO}/issues/new">Report a bug ${ICON.arrow}</button></div>
   </div>`;
-  document.querySelector(".link")!.addEventListener("click", () => openUrl(REPO));
+  document.querySelectorAll<HTMLElement>(".link").forEach((b) => b.addEventListener("click", () => openUrl(b.dataset.url!)));
+  // From the settings event once Settings changes them: on macOS this window sees that localStorage write late (issue #1).
+  let s = load();
+  listen<Settings>("settings", ({ payload }) => ((s = payload), fill()));
   const fill = () => {
-    const last = read<number>("cf.lastOk");
-    document.querySelector(".v-team")!.textContent = load().team ?? "—";
-    document.querySelector(".v-last")!.textContent = last ? `${fmtDate(new Date(last))} ${fmtTime(new Date(last))}` : "—";
+    // The oldest team's last success: how stale the widget can be.
+    const { teams } = s;
+    const oks = teams.map((t) => read<number>(`cf.lastOk.${t.id}`) ?? 0);
+    const last = oks.length ? Math.min(...oks) : 0;
+    document.querySelector(".v-team")!.textContent = teams[0] ? teams[0].short + (teams.length > 1 ? ` +${teams.length - 1}` : "") : "—";
+    document.querySelector(".v-last")!.textContent = last ? `${fmtDate(new Date(last))} ${fmtTime(new Date(last), s.h24)}` : "—";
   };
   await document.fonts.ready;
-  const { close } = popup(360, document.querySelector<HTMLElement>(".about")!.offsetHeight);
+  const { close } = popup(360, () => document.querySelector<HTMLElement>(".about")!.offsetHeight);
   document.querySelector(".close")!.addEventListener("click", close);
   // Re-check at most hourly: the About page lives as long as the app (GitHub allows 60 unauthenticated calls/h).
   let checked = 0;

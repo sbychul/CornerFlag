@@ -3,7 +3,7 @@
 export const BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer";
 const MIN = 60_000, HOUR = 60 * MIN, DAY = 24 * HOUR;
 
-export type Side = { name: string; short: string; logo: string; color?: string; score?: number; pen?: number; winner?: boolean };
+export type Side = { name: string; short: string; abbr: string; logo: string; color?: string; score?: number; pen?: number; winner?: boolean };
 export type Match = {
   id: string;
   date: string; // ISO, UTC
@@ -26,6 +26,7 @@ function side(c: any): Side {
   return {
     name: c.team.displayName,
     short: c.team.shortDisplayName,
+    abbr: c.team.abbreviation || String(c.team.shortDisplayName ?? "").slice(0, 3).toUpperCase(), // rows show 3 letters
     logo: logo?.href ?? c.team.logo ?? "",
     color: hex(c.team.color),
     score: num(c.score),
@@ -132,6 +133,13 @@ export function backoff(f: Failure, n: number): Backoff {
   if (f.network || (f.status !== undefined && f.status >= 500 && f.code !== 2404)) return { kind: "transient", delay: grow(10_000, 5 * MIN) };
   return { kind: "permanent", delay: HOUR };
 }
+
+/** Teams whose refresh is due now. Ones due in the next 2 s come along, so teams playing at the same time stay
+ *  on one beat and their goals in the same update play together. */
+export const due = <T extends { due: number }>(teams: T[], now: number) => teams.filter((t) => t.due <= now + 2000);
+
+/** Rows to hide, by position in the team list: a match a higher team already shows (picked teams playing each other). */
+export const hidden = (ids: (string | undefined)[]) => ids.map((id, i) => !!id && ids.indexOf(id) < i);
 
 /** Google search query, spec 5.2. */
 export const searchUrl = (m: Match) =>

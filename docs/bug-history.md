@@ -17,21 +17,26 @@
 | 조건 | 위치 | 깨지면 다시 생기는 버그 |
 | --- | --- | --- |
 | `sleep`의 지연은 `Math.max(0, ms)`로 하한을 둔다. 계산된 지연을 `setTimeout`에 직접 넘기지 않는다 | `src/widget.ts` `sleep` | Loading 고착, 새로고침 무반응 (bac9725) |
-| 캐시로 시작한 직후 첫 업데이트는 모션 없이 반영한다 | `src/widget.ts` `cached` | 앱이 꺼져 있던 동안의 킥오프·득점 모션이 늦게 재생 (d518fba) |
+| 캐시로 시작한 직후 첫 업데이트는 모션 없이 반영한다 (팀마다) | `src/widget.ts` `Slot.cached` | 앱이 꺼져 있던 동안의 킥오프·득점 모션이 늦게 재생 (d518fba) |
 | 일정은 이벤트 단위로 파싱하고, 읽을 수 있는 이벤트가 하나도 없을 때만 오류로 본다 | `src/espn.ts` | 깨진 이벤트 하나가 일정 전체를 숨김 (d518fba) |
 | 득점 줄은 현재 총점(홈+원정)번째 득점이다. 마지막 득점이 아니다 | `src/espn.ts` `goalLine` | 득점 줄이 스코어보다 먼저 바뀜 (1eccd3a) |
-| 첫 실행 Start는 고른 팀의 리그(`pickedLeague`)를 저장한다 | `src/settings.ts` | 마지막으로 훑어본 리그가 저장됨 (d518fba) |
-| 같은 리그를 다시 고르면 실패한 팀 목록을 다시 요청한다 | `src/settings.ts` | 팀 목록 실패 후 재시도 불가 (d518fba) |
+| 첫 실행 Start는 고른 팀의 리그를 저장한다. 팀마다 고른 리그를 `Team.league`로 들고 다닌다 | `src/picker.ts` `fetchTeams`, `src/settings.ts` `firstRun` | 마지막으로 훑어본 리그가 저장됨 (d518fba) |
+| 같은 리그를 다시 고르면 실패한 팀 목록을 다시 요청한다 | `src/picker.ts` `browser` | 팀 목록 실패 후 재시도 불가 (d518fba) |
 | 자동 시작이 켜져 있으면 실행할 때마다 `set_autostart`로 재등록한다 | `src/settings.ts` | 재설치 후 자동 시작이 꺼짐 (11d45ad) |
 | macOS 창·메뉴 좌표는 포인트(논리 좌표)로만 저장·계산한다. 물리 픽셀과 다른 모니터의 배율을 섞지 않는다 | `src/common.ts`, `src-tauri/src/lib.rs` `show_menu` | 혼합 DPI에서 위젯 이동·화면 밖, 메뉴 절반 크기 (89709b5, 49b2503, 6952e75) |
 | macOS 메뉴는 크기를 먼저 정한 뒤 이동한다 (`setContentSize`는 왼쪽 아래 모서리를 유지) | `src-tauri/src/lib.rs` `show_menu` | 메뉴 위치 어긋남 (49b2503) |
 | 위젯·Settings·About 위치는 `keepOnScreen`을 거친다 | `src/common.ts` `keepOnScreen` | 창이 화면 밖에 남음 (89709b5) |
 | Settings·About·메뉴는 표시할 모니터의 배율로 크기를 다시 정한다 | `src-tauri/src/lib.rs`, `src/common.ts` | 모니터 이동 후 창 잘림 (d74fd7a) |
-| 창 간 설정 전달은 `settings` 이벤트에 값을 실어 보낸다. 다른 창이 `localStorage`를 바로 읽는다고 가정하지 않는다 | `src/common.ts` `save` | macOS 첫 실행 Start 후 카드 미표시 (6952e75) |
+| 창 간 설정 전달은 `settings` 이벤트에 값을 실어 보낸다. 다른 창이 `localStorage`를 바로 읽는다고 가정하지 않는다 | `src/common.ts` `save`, `src/popups.ts` `about` | macOS 첫 실행 Start 후 카드 미표시 (6952e75) |
 | 위젯 안 툴팁은 페이지 안에서 그린다. `title` 속성에 의존하지 않는다 | `src/styles.css`, `src/widget.ts` | macOS에서 툴팁 미표시 (6952e75) |
 | 새로고침 버튼은 렌더 간 유지되는 요소 하나이며 Web Animations API로 회전한다 | `src/widget.ts` `refreshButton` | 회전이 뚝 끊김 (7542694) |
 | 스코어 숫자는 `font-variant-numeric: tabular-nums`를 쓴다 | `src/styles.css` | 숫자 간격 불균일 (04ac6ee) |
 | 활성 버튼·입력에는 공통 규칙 하나로 `cursor: pointer`를 준다 | `src/styles.css` | 손가락 커서 누락 (1cf51b9) |
+| 네이티브 드래그(`dragstart`)는 모든 창에서 막는다. 창 이동은 `startDragging`·`data-tauri-drag-region`을 쓴다 | `src/common.ts` | 크레스트를 끌면 파일로 저장됨 |
+| 위 줄 높이(`aboveBy`)는 그 위치가 있는 모니터의 배율(`monitorFromPoint`)로 바꾼다. 창 자신의 배율을 쓰지 않고, 배치·저장·레이아웃이 같은 기준을 쓴다 | `src/widget.ts` `aboveBy` | 혼합 DPI에서 실행할 때마다 카드가 밀림 |
+| 한 tick에서 갱신한 팀의 `due`는 tick 끝의 시각 하나로 정한다 | `src/widget.ts` `tick` | 동시에 경기 중인 팀들의 박자가 갈라짐 |
+| `laying` 체인은 실패를 삼킨다 | `src/widget.ts` `layout` | 레이아웃 호출 한 번 실패로 이후 크기 조정·위젯 표시가 멈춤 |
+| 그리드의 `shown`은 늦게 온 리그 응답을 버리는 검사 뒤에 바꾼다 | `src/picker.ts` `drawGrid` | 리그를 빨리 바꾸면 그리드 클릭이 먹통 |
 
 ## 영역별 요약
 
@@ -49,6 +54,13 @@
 
 | 날짜 | 배포 | 증상 | 원인 | 수정 | 커밋 |
 | --- | --- | --- | --- | --- | --- |
+| 2026-10-28 | 미배포 | Windows 혼합 DPI에서 위에 줄이 있으면 실행할 때마다 카드가 줄 하나당 수십 px씩 밀림 (리뷰에서 발견, 장비 미확인) | `place`가 위 줄 높이를 숨겨진 창이 만들어진 모니터의 배율로 변환. 그 뒤 `onMoved`가 밀린 위치를 저장해 누적 | 저장 위치가 있는 모니터의 배율로 변환 | 미커밋 |
+| 2026-10-28 | 미배포 | 동시에 경기 중인 팀들이 느린 네트워크 뒤 따로 갱신돼 골 모션이 같이 재생되지 않음 (리뷰에서 발견) | 팀마다 자기 응답 시각 + 주기로 `due`를 정해, 앞 요청이 2초를 넘으면 뒤 팀이 `due()`의 2초 창 밖으로 영구히 밀림 | tick 끝 시각 하나로 `due`를 정함 | 미커밋 |
+| 2026-10-28 | 미배포 | 레이아웃 호출이 한 번 실패하면 위젯 크기 조정이 멈추고 시작 시엔 위젯이 안 뜰 수 있음 (리뷰에서 발견) | 직렬화한 `laying` 체인이 reject 상태로 남음 | 체인에서 실패를 삼킴 | 미커밋 |
+| 2026-10-28 | 미배포 | 느린 리그를 고른 직후 다른 리그로 바꾸면 그리드의 팀을 눌러도 반응 없음 (리뷰에서 발견) | `shown`을 늦게 온 응답 검사 전에 덮어써 그리드와 목록이 어긋남 | 검사 뒤에 `shown`을 바꿈 | 미커밋 |
+| 2026-10-28 | 미배포 | 검색에서 "brondby", "kobenhavn"으로 덴마크 팀이 안 나옴 (리뷰에서 발견) | `ø`는 결합 문자로 분해되지 않아 접히지 않음 | `fold`에서 `ø`를 `o`로 (길이 유지) | 미커밋 |
+| 2026-10-28 | 미배포 | About의 팀·Last updated가 Settings에서 바꾼 팀을 늦게 반영할 수 있음 (macOS, 리뷰에서 발견) | About이 Settings 창이 쓴 `localStorage`를 바로 읽음 | `settings` 이벤트 값으로 갱신 | 미커밋 |
+| 2026-10-28 | 미배포 | 크레스트를 끌어 바탕화면에 놓으면 이미지 파일이 저장됨 (Settings 그리드, 위젯) | `html, body`의 `-webkit-user-drag: none`은 상속되지 않아 `<img>`는 기본으로 끌 수 있음 | 모든 창에서 `dragstart`를 막음 (`common.ts`) | 미커밋 |
 | 2026-10-28 | 미배포 | 팀을 바꾼 뒤 카드가 Loading에 멈추고 새로고침 버튼·Refresh now가 동작하지 않음 | 첫 tick이 `5000 - Date.now()` ms를 잠. `setTimeout`이 지연을 int32로 감아 날짜에 따라 최대 24.8일 대기, 그동안 tick이 바쁜 상태 | `sleep`에서 지연을 `Math.max(0, ms)`로 하한 | bac9725 |
 | 2026-10-25 | 미배포 | 앱을 끄고 있던 사이의 킥오프·득점 모션이 다시 켜자마자 늦게 재생됨 | 캐시로 시작한 뒤 첫 업데이트를 새 이벤트로 판단 | 캐시 시작 후 첫 업데이트는 모션 없이 반영 | d518fba |
 | 2026-10-25 | 미배포 | 일정에 깨진 이벤트 하나가 있으면 나머지 경기도 모두 안 보임 | 일정 전체를 한 번에 파싱해 하나만 실패해도 오류 | 이벤트별로 건너뛰고, 읽을 수 있는 이벤트가 하나도 없을 때만 오류 (`espn.test.mjs`에 케이스 추가) | d518fba |

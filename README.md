@@ -10,11 +10,11 @@ A little Flag for your Corner of the pitch.
 
 ---
 
-A minimal football widget for the Windows and macOS desktop. Pick one club and it shows the club's live match, next match or latest result on a single card that stays on your desktop.
+A minimal football widget for the Windows and macOS desktop. Pick up to four clubs. The first one's live match, next match or latest result shows on a card that stays on your desktop; the others show as thin rows above or below it.
 
 - Clubs from 17 leagues: the European top 5 (Premier League, LALIGA, Bundesliga, Serie A, Ligue 1), 10 more in Europe (Eredivisie, Liga Portugal, Scottish Premiership, Belgian Pro League, Süper Lig, Austria Bundesliga, Super League Greece, Danish Superliga, Allsvenskan, Eliteserien), Saudi Pro League and MLS
 - Every official competition: league, domestic cups, super cups, UEFA. Friendlies are skipped.
-- Live score every 10 seconds, with the latest goal scorer
+- Live score every 10 seconds, with the latest goal scorer on the card
 - Click the card for a Google search on the match. That's where the details live.
 
 ## Install
@@ -37,19 +37,20 @@ The app is not code-signed. On Windows, SmartScreen may warn on first run: click
 
 | Action                                | Result                                           |
 | ------------------------------------- | ------------------------------------------------ |
-| Click the card                        | Google search for the match                      |
-| Drag the card                         | Move the widget (unless **Lock position** is on) |
-| Hover the card                        | Shows ↻ (refresh) and _More details_             |
-| Hover ⚠ (shown when updates keep failing) | Why: last update time, rate-limit retry time, or update may be required |
-| Right-click the card or the tray icon | Menu: Settings, Refresh now, About, Quit (macOS: click the menu bar icon) |
+| Click the card or a row               | Google search for the match                      |
+| Drag the card or a row                | Move the widget, rows included (unless **Lock position** is on) |
+| Hover the card                        | Shows ↻ (refresh every club) and _More details_  |
+| Hover a row                           | Shows _More details_                             |
+| Hover ⚠ (shown when updates keep failing for any club) | Why: last update time, rate-limit retry time, or update may be required |
+| Right-click the card, a row or the tray icon | Menu: Settings, Refresh now, About, Quit (macOS: click the menu bar icon) |
 
-**Settings** (applied immediately): your league and team, start with Windows (macOS: open at login), size, opacity, lock position, 12/24-hour time.
+**Settings** (applied immediately): your teams (up to 4: add one from a league or by searching every league, click one to change it, drag to reorder, #1 is the card), whether the other teams' rows go above or below the card, start with Windows (macOS: open at login), size, opacity, lock position, 12/24-hour time.
 
-The card shows, in this order: a live match → the next match if it starts within 24 hours → the last result for 48 hours after kickoff → the next match.
+The card and each row show, in this order: a live match → the next match if it starts within 24 hours → the last result for 48 hours after kickoff → the next match. When two of your clubs play each other, the match shows once, for the higher one in your list.
 
 ## Data
 
-Match data comes from ESPN's public but **unofficial** site API. It can change or break without notice. CornerFlag is meant for **personal, non-commercial use** and keeps its requests light: one check an hour, every 10 seconds only while your club is playing. See [Disclaimer](#disclaimer).
+Match data comes from ESPN's public but **unofficial** site API. It can change or break without notice. CornerFlag is meant for **personal, non-commercial use** and keeps its requests light: one check an hour per club, every 10 seconds only while a club is playing. Each extra club adds its own requests. See [Disclaimer](#disclaimer).
 
 ## Build from source
 
@@ -58,7 +59,7 @@ Requires Node.js 24, Rust (stable; MSVC on Windows) and the [Tauri prerequisites
 ```bash
 npm install
 npm run tauri dev     # run with hot reload
-npm test              # match-selection, refresh-timing and error-backoff checks
+npm test              # match-selection, refresh-timing, multi-team and error-backoff checks
 npm run tauri build   # Windows: NSIS installer in src-tauri/target/release/bundle/nsis
 npm run tauri build -- --bundles dmg   # macOS: dmg in src-tauri/target/release/bundle/dmg
 ```

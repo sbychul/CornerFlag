@@ -539,6 +539,136 @@ svg {
   }
 }
 
+/* ---------- other teams' rows (Figma Multi-team) ---------- */
+
+.stack {
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.strip {
+  --cut: 10px;
+  --arc-c: transparent;
+  width: 320px;
+  height: 44px;
+  flex-shrink: 0;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.strip.empty {
+  cursor: default;
+  justify-content: center;
+}
+
+.side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.side.away {
+  flex-direction: row-reverse;
+}
+
+.side img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.strip .center {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 100px;
+  margin-left: -50px;
+  justify-content: center;
+  gap: 3px;
+  transition: opacity 150ms;
+}
+
+.strip:hover .center {
+  opacity: 0.1;
+}
+
+.strip:hover .more {
+  opacity: 1;
+}
+
+.strip > .more {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.strip .score {
+  gap: 5px;
+  font-size: 18px;
+}
+
+.strip .score .home,
+.strip .score .away {
+  width: 22px;
+}
+
+.strip .clock {
+  gap: 4px;
+  font-size: 10px;
+}
+
+.strip .dot {
+  width: 5px;
+  height: 5px;
+}
+
+.strip .badge {
+  padding: 0 5px;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 12px;
+}
+
+.strip .time {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.strip .date {
+  font-size: 9.5px;
+}
+
+.strip .ghost {
+  top: 26.5px; /* the status row under the score */
+  gap: 3px;
+}
+
+.strip.kickoff .ghost {
+  inset: 0;
+  justify-content: center;
+}
+
+.strip .none {
+  flex-direction: row;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.strip .none img {
+  width: 22px;
+  height: 22px;
+}
+
 /* ---------- menu ---------- */
 
 .menu {
@@ -914,18 +1044,754 @@ input[type="range"]::-webkit-slider-thumb {
   color: rgb(255 255 255 / 0.45);
 }
 
-.start {
-  align-self: flex-end;
-  padding: 7px 18px;
-  border-radius: 2px;
-  background: rgb(255 255 255 / 0.9);
-  color: #18181b;
+.hint {
+  font-size: 10.5px;
+  color: rgb(255 255 255 / 0.4);
+}
+
+.primary,
+.secondary {
+  padding: 8px 20px;
   font-size: 13px;
+  white-space: nowrap;
+}
+
+.primary {
+  background: rgb(255 255 255 / 0.92);
+  color: #17171a;
   font-weight: 600;
 }
 
-.start:disabled {
+.primary:disabled {
   opacity: 0.35;
+}
+
+.secondary {
+  border: 1px solid rgb(255 255 255 / 0.16);
+  font-weight: 500;
+  color: rgb(255 255 255 / 0.85);
+}
+
+.secondary:hover {
+  background: rgb(255 255 255 / 0.06);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Your teams (Figma 6, 9, 10) */
+.team-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.list-head {
+  margin-bottom: 6px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.items {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item {
+  position: relative;
+  height: 48px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 6px 0 8px;
+  border: 1px solid rgb(255 255 255 / 0.09);
+  background: rgb(255 255 255 / 0.04);
+  cursor: pointer;
+  transition: transform 150ms;
+}
+
+.item.main {
+  border-color: rgb(255 255 255 / 0.16);
+  background: rgb(255 255 255 / 0.08);
+}
+
+.single .item {
+  padding-left: 12px;
+}
+
+.single .handle,
+.single .remove {
+  display: none;
+}
+
+/* Opaque while dragged, so the items passing under it do not show through. */
+.item.lifted {
+  z-index: 1;
+  transition: none;
+  border-color: rgb(255 255 255 / 0.22);
+  background: #2a2a2e;
+  box-shadow: 0 8px 20px rgb(0 0 0 / 0.45);
+}
+
+.drop {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 48px;
+  box-sizing: border-box;
+  border: 1px dashed rgb(255 255 255 / 0.22);
+  background: rgb(255 255 255 / 0.03);
+}
+
+.handle {
+  display: flex;
+  padding: 4px 2px;
+  color: rgb(255 255 255 / 0.35);
+}
+
+button.handle:enabled {
+  cursor: grab;
+}
+
+.no {
+  width: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: rgb(255 255 255 / 0.45);
+}
+
+.item.main .no {
+  color: rgb(255 255 255 / 0.8);
+}
+
+.item img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.who > span {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgb(255 255 255 / 0.95);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.who small {
+  font-size: 11px;
+  color: rgb(255 255 255 / 0.5);
+}
+
+.role {
+  font-size: 10.5px;
+  color: rgb(255 255 255 / 0.4);
+}
+
+.item.main .role {
+  padding: 1px 6px;
+  background: rgb(255 255 255 / 0.12);
+  font-size: 10px;
+  font-weight: 500;
+  color: rgb(255 255 255 / 0.8);
+}
+
+.remove {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgb(255 255 255 / 0.55);
+}
+
+.remove:hover {
+  background: rgb(255 255 255 / 0.08);
+  color: var(--text);
+}
+
+.add {
+  height: 40px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px 0 14px;
+  border: 1px dashed rgb(255 255 255 / 0.16);
+  font-size: 13px;
+  font-weight: 500;
+  color: rgb(255 255 255 / 0.85);
+}
+
+.add:hover {
+  background: rgb(255 255 255 / 0.04);
+}
+
+.add span {
+  flex: 1;
+  text-align: left;
+}
+
+.add em {
+  font-style: normal;
+  font-size: 11px;
+  color: rgb(255 255 255 / 0.45);
+}
+
+.extra {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.extra.off .row,
+.extra.off .extra-text > span,
+.extra.off .seg {
+  opacity: 0.4;
+}
+
+/* Search, league dropdown and grid (Figma 7, 8, B1) */
+.browse {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.browse [hidden] {
+  display: none;
+}
+
+.search {
+  height: 34px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  background: rgb(255 255 255 / 0.08);
+  color: rgb(255 255 255 / 0.55);
+}
+
+.search:focus-within {
+  border-color: rgb(255 255 255 / 0.3);
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  cursor: text;
+}
+
+.search input::placeholder {
+  color: rgb(255 255 255 / 0.4);
+}
+
+.grid button:disabled {
+  opacity: 0.28;
+}
+
+.grid button:disabled:hover {
+  background: none;
+}
+
+.results {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.found {
+  max-height: 316px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.22) transparent;
+}
+
+.pick {
+  height: 44px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px 0 10px;
+  cursor: pointer;
+}
+
+.pick img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+.pick .who > span {
+  font-weight: 500;
+  color: rgb(255 255 255 / 0.75);
+}
+
+.pick b {
+  font-weight: 700;
+  color: #fff;
+}
+
+.pick:hover {
+  background: rgb(255 255 255 / 0.05);
+}
+
+.pick.active {
+  background: rgb(255 255 255 / 0.08);
+}
+
+.pick em {
+  visibility: hidden;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgb(255 255 255 / 0.8);
+}
+
+.pick.active em,
+.pick.taken em {
+  visibility: visible;
+}
+
+.pick.taken {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.pick.taken:hover {
+  background: none;
+}
+
+.pick.taken em {
+  font-size: 10.5px;
+  font-weight: 400;
+}
+
+/* Pick sheet over the window (Figma 7, B3a) */
+.dim {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: rgb(0 0 0 / 0.5);
+}
+
+.sheet {
+  position: absolute;
+  z-index: 6;
+  top: 48px;
+  left: 8px;
+  right: 8px;
+  min-height: calc(100% - 56px);
+  box-sizing: border-box;
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid rgb(255 255 255 / 0.09);
+  background: rgb(24 24 27 / 0.96);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 0.5);
+}
+
+.sheet-head {
+  height: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sheet-head span {
+  flex: 1;
+}
+
+.sheet-head button {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d4d4d8;
+}
+
+.sheet-head button:hover {
+  background: rgb(255 255 255 / 0.08);
+}
+
+/* ---------- first run (Figma First-run B1–B4) ---------- */
+
+.first {
+  --arc: 140px;
+  width: 800px;
+  height: 100vh;
+  padding: 0;
+  flex-direction: row;
+  gap: 0;
+}
+
+.rail {
+  width: 220px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  padding: 26px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgb(0 0 0 / 0.22);
+  box-shadow: inset -1px 0 rgb(0 0 0 / 0.5);
+}
+
+.brand {
+  margin-bottom: 24px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.steps li {
+  width: 172px;
+  height: 34px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  font-size: 13px;
+  color: rgb(255 255 255 / 0.4);
+}
+
+.steps i {
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgb(255 255 255 / 0.25);
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.steps .current {
+  background: rgb(255 255 255 / 0.08);
+  font-weight: 600;
+  color: rgb(255 255 255 / 0.95);
+}
+
+.steps .current i {
+  border-color: rgb(255 255 255 / 0.8);
+}
+
+.steps .done {
+  color: rgb(255 255 255 / 0.7);
+}
+
+.steps .done i,
+.steps .skipped i {
+  border: 0;
+  background: rgb(255 255 255 / 0.9);
+  color: #17171a;
+}
+
+.steps .skipped i {
+  background: rgb(255 255 255 / 0.25);
+}
+
+.rail-note {
+  margin: auto 0 0;
+  font-size: 11px;
+  line-height: 15px;
+  color: rgb(255 255 255 / 0.4);
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 26px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.body h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 27px;
+}
+
+.body .sub {
+  margin: -12px 0 0;
+  font-size: 13px;
+  color: rgb(255 255 255 / 0.6);
+}
+
+.body .actions {
+  margin-top: auto;
+}
+
+.first > .quit {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+.first .browse {
+  flex: 1;
+}
+
+.first .grid {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+
+.first .sheet .grid {
+  flex: 0 1 auto; /* the note follows the grid, as in Settings */
+}
+
+.first .found {
+  max-height: none;
+  min-height: 0;
+}
+
+.first .sheet {
+  left: 238px;
+  right: 18px;
+  bottom: 8px;
+  min-height: 0;
+}
+
+/* B2: a dialog in the middle of the whole window */
+.dim:has(.dialog) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 0.55);
+}
+
+.dialog {
+  width: 380px;
+  box-sizing: border-box;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  background: rgb(24 24 27 / 0.98);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 0.5);
+}
+
+.dialog h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.dialog p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 19px;
+  color: rgb(255 255 255 / 0.65);
+}
+
+.dialog .actions {
+  margin-top: 8px;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* B3: four slots; hovering a filled one swaps its Main/Row word for ✕ */
+.slots {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgb(255 255 255 / 0.1);
+}
+
+.slot {
+  position: relative;
+  height: 100px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 24px;
+  cursor: pointer;
+}
+
+.slot + .slot {
+  border-top: 1px solid rgb(255 255 255 / 0.1);
+}
+
+.slot:not(.empty):hover {
+  background: rgb(255 255 255 / 0.04);
+}
+
+.slot img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.slot .who > span {
+  font-size: 17px;
+}
+
+.slot .who small {
+  font-size: 12px;
+  color: rgb(255 255 255 / 0.55);
+}
+
+.slot[data-i="0"] .role {
+  font-weight: 500;
+  color: rgb(255 255 255 / 0.75);
+}
+
+/* The icon's right edge lines up with the word's: 24px from the slot edge. */
+.slot .remove {
+  position: absolute;
+  top: 36px;
+  right: 16px;
+  visibility: hidden;
+}
+
+.slot:hover .remove,
+.slot:focus-within .remove {
+  visibility: visible;
+}
+
+.slot:hover:has(.remove) .role,
+.slot:focus-within:has(.remove) .role {
+  visibility: hidden;
+}
+
+.slot.empty {
+  justify-content: center;
+  cursor: default;
+}
+
+.plus {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgb(255 255 255 / 0.24);
+  background: rgb(255 255 255 / 0.03);
+  color: rgb(255 255 255 / 0.85);
+}
+
+.plus:hover {
+  background: rgb(255 255 255 / 0.08);
+}
+
+/* B4: Extra teams with a silhouette preview at 1/4 size */
+.b4 {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.b4 .extra {
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.extra-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.extra-text .seg {
+  margin: 8px 0 2px;
+}
+
+.preview {
+  width: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: rgb(255 255 255 / 0.45);
+}
+
+.shape {
+  height: 96px;
+  box-sizing: border-box;
+  padding: 0 19px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background: rgb(255 255 255 / 0.03);
+}
+
+.shape b {
+  height: 36.5px;
+  background: rgb(255 255 255 / 0.32);
+}
+
+.shape i {
+  height: 11px;
+  background: rgb(255 255 255 / 0.18);
+}
+
+.shape .free {
+  box-sizing: border-box;
+  border: 1px dashed rgb(255 255 255 / 0.12);
+  background: none;
 }
 
 .about {
@@ -1013,8 +1879,12 @@ input[type="range"]::-webkit-slider-thumb {
   color: rgb(255 255 255 / 0.9);
 }
 
+.links {
+  display: flex;
+  gap: 16px;
+}
+
 .link {
-  align-self: flex-start;
   display: flex;
   align-items: center;
   gap: 4px;

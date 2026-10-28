@@ -38,7 +38,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: CornerFlag ${{ github.ref_name }}
+          releaseName: ${{ github.ref_name }}
           releaseBody: |
             Download `CornerFlag_*_x64-setup.exe` (installer) or `CornerFlag-${{ github.ref_name }}-portable.zip`.
             Mac (Apple silicon): `CornerFlag_*_aarch64.dmg`.

@@ -3,10 +3,16 @@
 import { emit, listen } from "@tauri-apps/api/event";
 import { LogicalPosition, PhysicalPosition, PhysicalSize, availableMonitors, currentMonitor, getCurrentWindow } from "@tauri-apps/api/window";
 
+export type Team = {
+  id: string;
+  league: string; // ESPN slug of the league it was picked from, e.g. eng.1
+  name: string; // displayName, e.g. Manchester City
+  short: string; // shortDisplayName, e.g. Man City
+};
+
 export type Settings = {
-  league: string; // ESPN slug, e.g. eng.1
-  teamId?: string;
-  team?: string; // shortDisplayName, for About
+  teams: Team[]; // 1-4; the first is the main card, the others are rows
+  stack: "above" | "below"; // where the rows go
   autostart: boolean;
   width: number; // card width in px at 100% DPI, 260-420
   opacity: number; // dark layer over the acrylic, 0-100
@@ -14,7 +20,7 @@ export type Settings = {
   h24: boolean;
 };
 
-const DEFAULTS: Settings = { league: "eng.1", autostart: false, width: 320, opacity: 70, lock: false, h24: true };
+const DEFAULTS: Settings = { teams: [], stack: "above", autostart: false, width: 320, opacity: 70, lock: false, h24: true };
 
 export function read<T>(key: string): T | undefined {
   try {
@@ -26,14 +32,32 @@ export function read<T>(key: string): T | undefined {
 
 export const write = (key: string, value: unknown) => localStorage.setItem(key, JSON.stringify(value));
 
-export const load = (): Settings => ({ ...DEFAULTS, ...read<Partial<Settings>>("cf.settings") });
+type Saved = Partial<Settings> & { league?: string; teamId?: string; team?: string }; // up to 1.1: one team
+
+export function load(): Settings {
+  const { league = "eng.1", teamId, team = "", ...s } = read<Saved>("cf.settings") ?? {};
+  const teams = s.teams ?? (teamId ? [{ id: teamId, league, name: team, short: team }] : []);
+  return { ...DEFAULTS, ...s, teams };
+}
+
+export const crest = (id: string) => `https://a.espncdn.com/i/teamlogos/soccer/500-dark/${id}.png`;
+
+/** Some clubs have no dark logo (e.g. Coventry): fall back to the default one. Capture-phase, for a whole page. */
+export const crestFallback = (root: EventTarget) =>
+  root.addEventListener("error", (e) => {
+    const img = e.target as HTMLImageElement;
+    if (img.src?.includes("/500-dark/")) img.src = img.src.replace("/500-dark/", "/500/");
+  }, true);
 
 // Window spots are kept in points on macOS: it has one point space for all displays, but its physical values are
 // points × a scale that differs per display (the window's own, each monitor's own), so a spot saved on a 1x display
 // and restored from a Retina one landed off screen (issue #2). Windows stays in physical px.
-const MAC = navigator.userAgent.includes("Mac");
+export const MAC = navigator.userAgent.includes("Mac");
 const unit = (scaleFactor: number) => (MAC ? scaleFactor : 1);
 type Spot = { x: number; y: number };
+
+/** Logical px as a distance in spot units, at `scale` or the window's own. */
+export const spotLength = async (px: number, scale?: number) => px * (MAC ? 1 : (scale ?? (await getCurrentWindow().scaleFactor())));
 
 /** The window's top-left, to save and later pass to keepOnScreen. */
 export async function spot(win = getCurrentWindow()): Promise<Spot> {
@@ -67,13 +91,14 @@ export async function keepOnScreen(win = getCurrentWindow(), to?: Spot) {
 /** Settings and About, w×h CSS px: shown on `emit("open", label)` where last closed (centered the first time).
  *  While hidden, Windows moves the window around when a monitor goes off and on, so position and size are
  *  re-applied on every show, and only a close saves the spot. The size uses the scale of the monitor the window is
- *  on, not the window's own: a moved hidden window keeps its old pixel size while WebView2 follows the new DPI. */
-export function popup(w: number, h: number) {
+ *  on, not the window's own: a moved hidden window keeps its old pixel size while WebView2 follows the new DPI.
+ *  `h` can change (Settings grows with its team list): call `fit` again after it does. */
+export function popup(w: number, h: () => number) {
   const win = getCurrentWindow();
   const key = `cf.pos.${win.label}`;
   const fit = async () => {
     const sf = (await currentMonitor())?.scaleFactor ?? 1;
-    await win.setSize(new PhysicalSize(Math.round(w * sf), Math.round(h * sf)));
+    await win.setSize(new PhysicalSize(Math.round(w * sf), Math.round(h() * sf)));
   };
   const show = async () => {
     if (!(await win.isVisible())) {
@@ -90,7 +115,7 @@ export function popup(w: number, h: number) {
     await win.hide();
   };
   listen<string>("open", ({ payload }) => payload === win.label && show());
-  return { show, close };
+  return { show, close, fit };
 }
 
 /** Save and tell the other windows; settings apply immediately. The event carries the settings: on macOS each
@@ -135,7 +160,14 @@ export const ICON = {
   quit: svg(14, `<path stroke-width="1.23" d="M7 1.75v4.81M3.94 3.68a4.38 4.38 0 1 0 6.12 0"/>`),
   chevron: svg(12, `<path stroke-width="1.25" d="M3 4.5 6 7.5 9 4.5"/>`),
   check: svg(14, `<path stroke-width="1.3" d="M3 7.2 5.8 10 11 4.5"/>`),
+  done: svg(10, `<path stroke-width="1.4" stroke-linecap="square" d="M2 5.2 4.2 7.4 8 2.8"/>`),
+  add: svg(14, `<path stroke-width="1.4" stroke-linecap="square" d="M7 1.5v11M1.5 7h11"/>`),
+  search: svg(14, `<g stroke-width="1.3"><circle cx="6" cy="6" r="4.4"/><path stroke-linecap="square" d="m9.3 9.3 3.2 3.2"/></g>`),
+  handle: `<svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor" aria-hidden="true">${[2, 7, 12].map((y) => `<circle cx="1.5" cy="${y}" r="1.3"/><circle cx="6.5" cy="${y}" r="1.3"/>`).join("")}</svg>`,
 };
 
 // Every window draws its own dark surface; the native context menu would only get in the way.
 addEventListener("contextmenu", (e) => e.preventDefault());
+// Crests are <img>, which the WebView lets you drag out as a file (onto the desktop, it saves a copy). CSS
+// `-webkit-user-drag` is not inherited from body, so stop every native drag here; window drags don't use it.
+addEventListener("dragstart", (e) => e.preventDefault());

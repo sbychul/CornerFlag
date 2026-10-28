@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 128 128">
+  <title>CornerFlag (macOS)</title>
+  <!-- logo.svg in white over a dark outline of the whole mark, so it stays visible on a light Dock. -->
+  <defs>
+    <g id="mark" transform="translate(2 0)">
+      <rect x="92" y="12" width="8" height="104"/>
+      <path d="M44 16H92V40.5A33.5 33.5 0 0 0 58.5 74H24V36Z"/>
+      <path d="M92 47.5V74H65.5A26.5 26.5 0 0 1 92 47.5Z"/>
+    </g>
+  </defs>
+  <use xlink:href="#mark" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="8" stroke-linejoin="round"/>
+  <use xlink:href="#mark" fill="#fff"/>
+</svg>

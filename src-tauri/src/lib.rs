@@ -83,12 +83,15 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![show_menu, set_autostart, quit])
-        // Every window lives for the app's lifetime and only hides: Alt+F4 destroyed Settings or About, which then
-        // never opened again, and the menu's expect() panicked. Quit is the menu's.
+        // The popups live for the app's lifetime and only hide: Alt+F4 destroyed Settings or About, which then never
+        // opened again, and the menu's expect() panicked. Closing the widget quits, so a Windows logoff, restart or
+        // installer (WM_CLOSE) isn't held up.
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                api.prevent_close();
-                if window.label() != "main" {
+                if window.label() == "main" {
+                    window.app_handle().exit(0);
+                } else {
+                    api.prevent_close();
                     let _ = window.hide();
                 }
             }

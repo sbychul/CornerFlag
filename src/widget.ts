@@ -71,7 +71,8 @@ type Board = (id: string) => Promise<any>;
 type Move = [how: Motion | undefined, prev: Match | undefined];
 const still: Move = [undefined, undefined];
 
-async function full(team: string, board: Board) {
+/** `broken` hears of a scoreboard that fails for good (gone, changed format), so ⚠ can say so. */
+async function full(team: string, board: Board, broken: (b: Backoff) => void) {
   const past = await get(`/all/teams/${team}/schedule`);
   const next = await get(`/all/teams/${team}/schedule?fixture=true`);
   const m = pick([...past.events, ...next.events], Date.now());
@@ -81,17 +82,19 @@ async function full(team: string, board: Board) {
   try {
     return refine(m, await board(m.id));
   } catch (e) {
-    if (backoff(e as Failure, 1).kind === "limited") throw e;
+    const b = backoff(e as Failure, 1);
+    if (b.kind === "limited") throw e;
+    if (b.kind === "permanent") broken(b);
     return m;
   }
 }
 
-async function fetchSlot(t: Slot, board: Board) {
+async function fetchSlot(t: Slot, board: Board, broken: (b: Backoff) => void) {
   let m = t.shown;
   if (m && watching(m, Date.now())) {
     m = refine(m, await board(m.id));
-    if (m.state === "post") m = await full(t.team.id, board);
-  } else m = await full(t.team.id, board);
+    if (m.state === "post") m = await full(t.team.id, board, broken);
+  } else m = await full(t.team.id, board, broken);
   return m;
 }
 
@@ -112,10 +115,13 @@ async function tick() {
     if (Date.now() < blockedUntil) break;
     ran.push(t);
     try {
-      const m = await fetchSlot(t, board);
+      let broken: Backoff | undefined;
+      const m = await fetchSlot(t, board, (b) => (broken = b));
       if (!slots.includes(t)) continue; // removed in Settings meanwhile
       moves.set(t, [t.cached ? undefined : motion(t.shown, m), t.shown]);
-      Object.assign(t, { shown: m, loading: false, cached: false, fails: 0, failure: undefined, period: nextDelay(m, Date.now()) });
+      // A broken scoreboard still shows the schedule's match, but counts as a failure: twice in a row, ⚠.
+      const fail = broken ? { fails: t.fails + 1, failure: broken } : { fails: 0, failure: undefined };
+      Object.assign(t, { shown: m, loading: false, cached: false, ...fail, period: nextDelay(m, Date.now()) });
       write(`cf.match.${t.team.id}`, m ?? null);
       write(`cf.lastOk.${t.team.id}`, Date.now());
     } catch (e) {
@@ -423,8 +429,11 @@ export async function widget() {
       localStorage.removeItem(`cf.lastOk.${t.team.id}`);
     }
     if (first) return slots.length && start(); // first run finished
-    render();
-    if (!busy) schedule(); // otherwise the running tick schedules the new teams when it ends
+    try {
+      render();
+    } finally {
+      if (!busy) schedule(); // otherwise the running tick schedules the new teams when it ends
+    }
   });
   // Spec 7.2: after the network comes back, refresh only the teams whose data is older than their current interval.
   addEventListener("online", () => {

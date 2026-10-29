@@ -1,4 +1,4 @@
-<h1>
+<h1 align="center">
   <picture>
     <!-- logo-wordmark.svg is currentColor, which an <img> draws black; GitHub dark theme gets a white copy -->
     <source media="(prefers-color-scheme: dark)" srcset=".github/wordmark-white.svg">
@@ -6,7 +6,10 @@
   </picture>
 </h1>
 
-A little Flag for your Corner of the pitch.
+<p align="center">
+  A little Flag for your Corner of the pitch.<br>
+  <a href="README.ko.md">한국어</a>
+</p>
 
 ---
 

@@ -86,6 +86,7 @@ export function browser(o: Browse) {
   let league = o.league;
   let shown: Team[] = [];
   let found: Team[] = [];
+  let foundFor = ""; // the query `found` answers: while a slow league loads, the list still shows the last one's
   let active = -1;
   const el = document.createElement("div");
   el.className = "browse";
@@ -188,6 +189,7 @@ export function browser(o: Browse) {
     const failed = all.some((r) => r.status === "rejected");
     const taken = o.taken();
     found = all.flatMap((r) => (r.status === "fulfilled" ? r.value : [])).filter((t) => fold(t.short).includes(q) || fold(t.name).includes(q));
+    foundFor = q;
     active = found.findIndex((t) => !taken.has(t.id));
     const n = found.length;
     $(".count").textContent =
@@ -203,10 +205,11 @@ export function browser(o: Browse) {
     paintFound();
   }
   input.addEventListener("input", search);
+  const current = () => foundFor === fold(input.value.trim());
   list.addEventListener("click", (e) => {
     const r = (e.target as Element).closest(".pick:not(.taken)");
     const i = [...list.children].indexOf(r!);
-    if (i >= 0) choose(found[i], true);
+    if (i >= 0 && current()) choose(found[i], true);
   });
   input.addEventListener("keydown", (e) => {
     const taken = o.taken();
@@ -214,7 +217,7 @@ export function browser(o: Browse) {
     if (step && found.length && !results.hidden) {
       e.preventDefault();
       for (let i = active + step; i >= 0 && i < found.length; i += step) if (!taken.has(found[i].id)) return (active = i), paintFound();
-    } else if (e.key === "Enter" && !results.hidden && found[active]) choose(found[active], true);
+    } else if (e.key === "Enter" && !results.hidden && found[active] && current()) choose(found[active], true);
     else if (e.key === "Escape" && !o.escape && input.value) e.stopPropagation(), (input.value = ""), search();
   });
 

@@ -89,7 +89,10 @@ export function pick(events: any[], now: number): Match | undefined {
   const t = (m: Match) => Date.parse(m.date);
   const live = all.find((m) => m.state === "in");
   if (live) return live;
-  const next = all.filter((m) => (m.state === "pre" || m.postponed) && !(m.postponed && t(m) <= now)).sort((a, b) => t(a) - t(b))[0];
+  // A "pre" past watching()'s window was never updated (cancelled, stale): as the earliest it hid the real next match.
+  const next = all
+    .filter((m) => (m.postponed ? t(m) > now : m.state === "pre" && now - t(m) < 2 * HOUR))
+    .sort((a, b) => t(a) - t(b))[0];
   const last = all.filter((m) => m.state === "post" && !m.postponed).sort((a, b) => t(b) - t(a))[0];
   if (next && t(next) - now <= DAY) return next;
   if (last && now - t(last) < 2 * DAY) return last;

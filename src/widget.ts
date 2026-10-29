@@ -36,7 +36,7 @@ let cooldownUntil = 0;
 let blockedUntil = 0;
 let update: string | undefined; // newer release version, shown as the Update badge
 // One ↻ for the card's lifetime: re-rendering would replace the element and cut its spin short.
-const refreshButton = Object.assign(document.createElement("button"), { className: "refresh", title: "Refresh", innerHTML: ICON.refresh });
+const refreshButton = Object.assign(document.createElement("button"), { className: "refresh tip", ariaLabel: "Refresh", innerHTML: ICON.refresh });
 
 // Clamped: setTimeout wraps its delay to int32, so the first tick's 5000 - Date.now() became a wait of up to 24.8 days.
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, Math.max(0, ms)));
@@ -61,7 +61,10 @@ async function get(path: string) {
     const body = await r.json().catch(() => ({}));
     throw { status: r.status, code: body.code, retryAfter: Number(r.headers.get("Retry-After")) || undefined } satisfies Failure;
   }
-  return r.json();
+  // A body cut off or timed out midway is the network too: thrown as is, backoff() read it as permanent (an hour).
+  return r.json().catch(() => {
+    throw { network: true } satisfies Failure;
+  });
 }
 
 type Board = (id: string) => Promise<any>;
@@ -72,7 +75,15 @@ async function full(team: string, board: Board) {
   const past = await get(`/all/teams/${team}/schedule`);
   const next = await get(`/all/teams/${team}/schedule?fixture=true`);
   const m = pick([...past.events, ...next.events], Date.now());
-  return m && refine(m, await board(m.id));
+  if (!m) return m;
+  // The scoreboard only adds colors and live details: failing, it threw away the schedules' answer too. A rate limit
+  // still stops the tick.
+  try {
+    return refine(m, await board(m.id));
+  } catch (e) {
+    if (backoff(e as Failure, 1).kind === "limited") throw e;
+    return m;
+  }
 }
 
 async function fetchSlot(t: Slot, board: Board) {
@@ -120,8 +131,11 @@ async function tick() {
   for (const t of slots) t.due = Math.max(t.due, blockedUntil);
   write("cf.cooldown", Math.max(cooldownUntil, blockedUntil));
   busy = false;
-  render(moves);
-  schedule();
+  try {
+    render(moves);
+  } finally {
+    schedule(); // a render that throws (a bad cached match) must not stop the loop for good
+  }
 }
 
 /** Next tick when the earliest team is due; a team added in Settings is due at once. At most an hour ahead:
@@ -215,7 +229,7 @@ function warning() {
 
 // Always visible, unlike ↻: otherwise a new release only shows up in About.
 const updateBadge = () =>
-  update ? `<button class="badge upd" style="--c:#ffd60a" title="Update available: v${esc(update)}">Update</button>` : "";
+  update ? `<button class="badge upd tip" style="--c:#ffd60a" aria-label="Update available: v${esc(update)}">Update</button>` : "";
 
 /** The leading team's color fades in from its side. */
 const tint = (el: HTMLElement, m: Match) => {
@@ -329,10 +343,13 @@ async function place() {
   await win.setPosition(new PhysicalPosition(o.x + size.width - (await win.outerSize()).width - gap, o.y + gap));
 }
 
+// A failed render or placement must not keep the card hidden and the loop unstarted: the next tick draws it again.
 async function start() {
-  render();
+  try {
+    render();
+  } catch {}
   await laying;
-  await place();
+  await place().catch(() => {});
   await win.show();
   tick();
 }

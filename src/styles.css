@@ -119,7 +119,8 @@ svg {
 
 /* Drawn in the page, not `title`: macOS shows no native tooltips while the app is inactive, and the widget's always is.
    Anchored to the head's right edge so a long reason next to the Update badge stays inside the card. */
-.warn:hover::after {
+.warn:hover::after,
+.tip:hover::after {
   content: attr(aria-label);
   position: absolute;
   top: calc(100% + 4px);

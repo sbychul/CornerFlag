@@ -83,6 +83,16 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![show_menu, set_autostart, quit])
+        // Every window lives for the app's lifetime and only hides: Alt+F4 destroyed Settings or About, which then
+        // never opened again, and the menu's expect() panicked. Quit is the menu's.
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                if window.label() != "main" {
+                    let _ = window.hide();
+                }
+            }
+        })
         .setup(|app| {
             // The windows are see-through via CSS only. SWCA acrylic was tried (verification.md 6) but it painted
             // the whole window rect, cut corner included, hid the backdrop almost completely, and the window
